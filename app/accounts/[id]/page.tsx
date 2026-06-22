@@ -41,7 +41,7 @@ const TYPE_TO_TAB: Record<string, string> = {
 const TAX_RATES: Record<string, number> = {
   PEA: 0.172,   // social levies only (after 5-year holding period)
   CTO: 0.314,   // flat tax: 12.8% income tax + 17.2% social levies + 0.2% exceptional contribution
-  CRYPTO: 0.30, // flat tax 30%
+  CRYPTO: 0.314, // flat tax: 12.8% income tax + 17.2% social levies (same as CTO — no fiscal advantage)
 };
 
 function getTaxRate(type: string, subtype: string | null): number | null {
@@ -215,7 +215,7 @@ export default async function AccountDetailPage({
     account.type === "INVESTMENT" && account.investmentSubtype
       ? ` · ${account.investmentSubtype}`
       : account.type === "CRYPTO"
-      ? " · 30% flat tax"
+      ? " · 31.4% flat tax"
       : "";
 
   return (
@@ -492,7 +492,7 @@ export default async function AccountDetailPage({
                 </div>
                 <div>
                   <p className="text-xs text-[var(--muted)] mb-0.5">
-                    Impôt latent ({account.type === "CRYPTO" ? "30%" : account.investmentSubtype === "PEA" ? "17,2%" : "30%"})
+                    Impôt latent ({account.investmentSubtype === "PEA" ? "17,2%" : "31,4%"})
                   </p>
                   <p className="tabular-nums font-semibold text-[var(--negative)]">
                     -{formatCurrency(totalTax)}

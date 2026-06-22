@@ -160,7 +160,7 @@ Leave credentials blank to disable a module. `sync/main.py` skips gracefully. `s
 
 ### Tax rates
 
-Currently hardcoded as `TAX_RATES` constants in 4 files (`app/page.tsx:14`, `app/accounts/page.tsx:45`, `app/accounts/[id]/page.tsx:41`, `app/analytics/page.tsx:35`). Default values are French rates (PEA 17.2%, CTO 31.4%, Crypto 30%). Post-v1, these will move to `UserSettings` to be user-configurable.
+Currently hardcoded as `TAX_RATES` constants in 4 files (`app/page.tsx:14`, `app/accounts/page.tsx:45`, `app/accounts/[id]/page.tsx:41`, `app/analytics/page.tsx:35`). Default values are French rates (PEA 17.2%, CTO 31.4%, Crypto 31.4%). Post-v1, these will move to `UserSettings` to be user-configurable.
 
 ### Data model
 
@@ -180,7 +180,7 @@ Currently hardcoded as `TAX_RATES` constants in 4 files (`app/page.tsx:14`, `app
 **Gross = fiat balances + holdings market value + real estate/automobile manualValueCents**
 **Net = Gross − liabilityCents − loan remaining capital − latent taxes**
 
-Latent tax rates: PEA 17.2%, CTO 31.4%, Crypto 30% (French defaults, will be configurable post-v1).
+Latent tax rates: PEA 17.2%, CTO 31.4%, Crypto 31.4% (French defaults, will be configurable post-v1).
 
 ### Server vs Client boundary
 

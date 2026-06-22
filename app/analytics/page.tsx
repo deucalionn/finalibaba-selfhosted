@@ -32,7 +32,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 // Tax rates
-const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.30 };
+const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.314 };
 
 // Approximate tech exposure per ticker (0–1)
 const TECH_WEIGHTS: Record<string, number> = {

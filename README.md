@@ -15,9 +15,8 @@
 
 - **Net worth dashboard** — gross and net of latent taxes, monthly trend, allocation breakdown
 - **All asset types** — bank accounts, investments (PEA / CTO / Crypto), real estate, automobiles, loans
-- **French tax calculations** — latent taxes: PEA 17.2%, CTO 31.4%, Crypto 30%
+- **French tax calculations** — latent taxes: PEA 17.2%, CTO 31.4%, Crypto 31.4%
 - **Analytics** — savings rate, survival runway, sector exposure, passive income, CAGR per account
-- **Open Banking PSD2** — connect any EU or UK bank via GoCardless (2,200+ institutions, free tier)
 - **Automatic sync** (optional) — Trade Republic (18 EU countries) · French banks via Woob
 - **100% self-hosted** — your data stays on your server
 
@@ -66,7 +65,7 @@ All types can be added and updated manually from the UI. Auto-sync is optional.
 
 | Type | Description | Auto-sync |
 |---|---|---|
-| Checking / Savings | Bank accounts with balance history | GoCardless (EU/UK) · Woob (FR banks) |
+| Checking / Savings | Bank accounts with balance history | Woob (FR banks) |
 | Investment — PEA / CTO | Stock and ETF portfolios with live prices | Trade Republic |
 | Crypto | Cryptocurrency wallets with live prices | Trade Republic |
 | Real estate | Property with optional mortgage liability | — |
@@ -93,13 +92,9 @@ docker compose exec -it sync python setup_tr.py
 
 The session persists in a Docker volume. Renew it when it expires (every few weeks).
 
-### GoCardless and Woob (EU/UK banks + French banks)
+### French banks via Woob
 
-**GoCardless** — Connect any EU or UK bank via the official PSD2 API (free tier: 50 connections, 90-day history). Set `GOCARDLESS_SECRET_ID` and `GOCARDLESS_SECRET_KEY` in `.env`.
-
-**Woob** — Connect French banks via web scraping. Configure credentials per institution directly from **Settings → Institutions**.
-
-Once credentials are set, connect and sync from **Settings → Institutions**.
+Configure credentials per institution directly from **Settings → Institutions**. Supports any bank available in the [Woob](https://woob.tech) ecosystem.
 
 ---
 

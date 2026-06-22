@@ -42,7 +42,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.30 };
+const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.314 };
 
 function taxRate(type: string, subtype: string | null): number | null {
   if (type === "CRYPTO") return TAX_RATES.CRYPTO;
