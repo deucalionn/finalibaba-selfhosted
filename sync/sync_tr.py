@@ -16,7 +16,6 @@ import logging
 import os
 import sys
 from decimal import Decimal
-from pathlib import Path
 
 import psycopg2.extras
 
@@ -553,6 +552,6 @@ if __name__ == "__main__":
         print(f"⚠ {e}")
         print("→ Re-run with: docker exec -it finalibaba-sync-1 python sync_tr.py --setup")
         sys.exit(2)
-    except Exception as e:
+    except Exception:
         log.exception("Trade Republic sync error")
         sys.exit(1)

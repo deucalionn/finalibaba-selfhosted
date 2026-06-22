@@ -73,7 +73,7 @@ def run(interactive: bool = False) -> dict:
         raise RuntimeError("Institution 'LCL' not found in DB. Run npm run db:seed.")
 
     synced = []
-    from woob.exceptions import AppValidation, AppValidationExpired, NeedInteractiveFor2FA, NeedInteractive
+    from woob.exceptions import AppValidation, NeedInteractiveFor2FA, NeedInteractive
 
     def _iter_accounts():
         from woob.core.bcall import CallErrors
@@ -103,7 +103,7 @@ def run(interactive: bool = False) -> dict:
             conn.commit()
             raise AuthRequiredError("LCL Certicode Plus required")
         # Interactive mode: wait for user to validate in LCL app
-        print(f"\n📱 Open the LCL app → 'Certicode Plus' and approve the connection.")
+        print("\n📱 Open the LCL app → 'Certicode Plus' and approve the connection.")
         print(f"   (woob message: {e})")
         input("\nPress Enter once approved in the LCL app… ")
         accounts = _iter_accounts()
@@ -187,6 +187,6 @@ if __name__ == "__main__":
         print(f"⚠ {e}")
         print("→ Re-run with: docker exec -it finalibaba-sync-1 python sync_lcl.py --setup")
         sys.exit(2)
-    except Exception as e:
+    except Exception:
         log.exception("LCL sync error")
         sys.exit(1)
