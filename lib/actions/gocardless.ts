@@ -22,6 +22,6 @@ export async function syncGocardlessBalances(institutionId: string) {
     })
   );
 
-  revalidatePath("/banks");
+  revalidatePath("/accounts");
   revalidatePath("/");
 }

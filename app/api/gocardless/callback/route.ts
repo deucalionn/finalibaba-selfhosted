@@ -43,5 +43,5 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(new URL("/banks?gc=connected", req.url));
+  return NextResponse.redirect(new URL("/settings?gc=connected", req.url));
 }

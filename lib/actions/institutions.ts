@@ -48,7 +48,7 @@ export async function clearWoobConfig(id: string) {
 export async function deleteInstitution(id: string) {
   await prisma.institution.delete({ where: { id } });
   revalidatePath("/settings");
-  revalidatePath("/banks");
-  revalidatePath("/portfolio");
-  revalidatePath("/real-estate");
+  revalidatePath("/accounts");
+  revalidatePath("/analytics");
+  revalidatePath("/");
 }

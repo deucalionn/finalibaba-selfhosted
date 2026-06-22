@@ -13,6 +13,6 @@ export async function recordBalance(formData: FormData) {
     data: { accountId, balanceCents },
   });
 
-  revalidatePath("/banks");
+  revalidatePath("/accounts");
   revalidatePath("/");
 }
