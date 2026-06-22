@@ -18,7 +18,7 @@
 - **French tax calculations** — latent taxes: PEA 17.2%, CTO 31.4%, Crypto 30%
 - **Analytics** — savings rate, survival runway, sector exposure, passive income, CAGR per account
 - **Open Banking PSD2** — connect any EU or UK bank via GoCardless (2,200+ institutions, free tier)
-- **Automatic sync** (optional) — Trade Republic (18 EU countries) and LCL (FR)
+- **Automatic sync** (optional) — Trade Republic (18 EU countries) · French banks via Woob
 - **100% self-hosted** — your data stays on your server
 
 ## Tech stack
@@ -53,10 +53,10 @@ NEXTAUTH_SECRET=          # openssl rand -base64 32
 
 ```bash
 docker compose up -d
-docker compose exec app npx prisma db seed
+docker compose exec app npx prisma db seed  # optional — pre-populates common banks
 ```
 
-Open [http://localhost:3000](http://localhost:3000). First boot takes a minute while the image builds.
+Open [http://localhost:3000](http://localhost:3000). First boot takes a few minutes while the image builds.
 
 ---
 
@@ -66,7 +66,7 @@ All types can be added and updated manually from the UI. Auto-sync is optional.
 
 | Type | Description | Auto-sync |
 |---|---|---|
-| Checking / Savings | Bank accounts with balance history | GoCardless (EU/UK), LCL (FR) |
+| Checking / Savings | Bank accounts with balance history | GoCardless (EU/UK) · Woob (FR banks) |
 | Investment — PEA / CTO | Stock and ETF portfolios with live prices | Trade Republic |
 | Crypto | Cryptocurrency wallets with live prices | Trade Republic |
 | Real estate | Property with optional mortgage liability | — |
@@ -93,19 +93,13 @@ docker compose exec -it sync python setup_tr.py
 
 The session persists in a Docker volume. Renew it when it expires (every few weeks).
 
-### LCL
+### GoCardless and Woob (EU/UK banks + French banks)
 
-Set `LCL_LOGIN` and `LCL_PASSWORD` in `.env`. First-time setup:
+**GoCardless** — Connect any EU or UK bank via the official PSD2 API (free tier: 50 connections, 90-day history). Set `GOCARDLESS_SECRET_ID` and `GOCARDLESS_SECRET_KEY` in `.env`.
 
-```bash
-docker compose exec -it sync python setup_lcl.py
-```
+**Woob** — Connect French banks via web scraping. Configure credentials per institution directly from **Settings → Institutions**.
 
-### GoCardless — EU + UK banks via PSD2
-
-Create a free account at [bankaccountdata.gocardless.com](https://bankaccountdata.gocardless.com) (50 connections / 90 days of history — no credit card required).
-
-Set `GOCARDLESS_SECRET_ID` and `GOCARDLESS_SECRET_KEY` in `.env`, then connect your banks from **Settings → Institutions**.
+Once credentials are set, connect and sync from **Settings → Institutions**.
 
 ---
 
