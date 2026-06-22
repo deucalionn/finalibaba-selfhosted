@@ -17,7 +17,7 @@ candidates = [
 ]
 path = candidates[0] if candidates else None
 if not path:
-    print("[patch] lcl/browser.py introuvable — skip")
+    print("[patch] lcl/browser.py not found — skip")
     sys.exit(0)
 
 content = open(path).read()

@@ -1,7 +1,7 @@
 "use client";
 
 interface SparklineProps {
-  values: number[]; // valeurs en centimes, ordre chronologique
+  values: number[]; // balance values in cents, chronological order
 }
 
 export function Sparkline({ values }: SparklineProps) {

@@ -1,44 +1,42 @@
 # Finalibaba — Self-Hosted
 
-> Self-hosted personal wealth dashboard. Track your net worth, investments, real estate, loans and crypto in a single view.
+> Self-hosted personal wealth dashboard. Track net worth, investments, real estate, loans, and crypto in one place.
 > Open-source alternative to Finary, with built-in French tax calculations (PEA · CTO · Crypto).
 
-![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 
-> ⚠️ **v1 — UI is in French.** i18n + configurable tax rates are planned. See [Roadmap](#roadmap).
+> **Note:** v1 UI is in French. English UI and configurable tax rates are on the [roadmap](ROADMAP.md).
 
 ---
 
 ## Features
 
-- **Net worth dashboard** — gross and net of latent taxes, monthly evolution, allocation breakdown
-- **All asset types** — cash accounts, investments (PEA / CTO / Crypto), real estate, automobiles, loans
+- **Net worth dashboard** — gross and net of latent taxes, monthly trend, allocation breakdown
+- **All asset types** — bank accounts, investments (PEA / CTO / Crypto), real estate, automobiles, loans
 - **French tax calculations** — latent taxes: PEA 17.2%, CTO 31.4%, Crypto 30%
 - **Analytics** — savings rate, survival runway, sector exposure, passive income, CAGR per account
-- **Automatic sync** (optional) — Trade Republic (18 EU countries), LCL, Swile
-- **Open Banking PSD2** — connect any EU or UK bank via GoCardless (2,200+ institutions)
-- **100% self-hosted** — your data stays on your server, no external service required
-
-## Screenshots
-
-<!-- TODO: add screenshots -->
+- **Open Banking PSD2** — connect any EU or UK bank via GoCardless (2,200+ institutions, free tier)
+- **Automatic sync** (optional) — Trade Republic (18 EU countries) and LCL (FR)
+- **100% self-hosted** — your data stays on your server
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 · React 19 · TypeScript |
-| Styling | Tailwind CSS v4 (CSS custom properties) |
+| Styling | Tailwind CSS v4 |
 | Database | PostgreSQL 16 · Prisma ORM |
-| Auto-sync | Python · Woob (LCL) · pytr (Trade Republic) |
+| Auto-sync | Python · FastAPI · pytr · Woob |
 | Charts | Recharts |
 | Deployment | Docker · Docker Compose |
 
-## Quick setup (5 min)
+---
 
-**Prerequisites:** Docker + Docker Compose
+## Quick start
+
+**Prerequisites:** Docker and Docker Compose.
 
 ```bash
 git clone https://github.com/LoicSERRE/finalibaba-selfhosted
@@ -46,79 +44,108 @@ cd finalibaba-selfhosted
 cp .env.example .env
 ```
 
-Open `.env` and set at minimum:
-- `POSTGRES_PASSWORD` — a strong random password
-- `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+Edit `.env` — at minimum set:
+
+```env
+POSTGRES_PASSWORD=        # strong random password
+NEXTAUTH_SECRET=          # openssl rand -base64 32
+```
 
 ```bash
 docker compose up -d
 docker compose exec app npx prisma db seed
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). First boot takes a minute while the image builds.
 
-## Adding accounts
+---
 
-The app supports the following account types, all addable manually from the UI:
+## Account types
 
-| Type | Description | Sync available |
+All types can be added and updated manually from the UI. Auto-sync is optional.
+
+| Type | Description | Auto-sync |
 |---|---|---|
-| Checking / Savings | Bank accounts | GoCardless (EU/UK), LCL |
-| Investment (PEA / CTO) | Stock/ETF brokerage accounts | Trade Republic |
-| Crypto | Cryptocurrency wallets | Trade Republic |
-| Meal vouchers | Swile, Edenred | Swile |
-| Real estate | Property with optional mortgage liability | Manual |
-| Automobile | Vehicle with purchase price | Manual |
-| Loan / Credit | Amortizing loans (auto-computed capital) | Manual |
+| Checking / Savings | Bank accounts with balance history | GoCardless (EU/UK), LCL (FR) |
+| Investment — PEA / CTO | Stock and ETF portfolios with live prices | Trade Republic |
+| Crypto | Cryptocurrency wallets with live prices | Trade Republic |
+| Real estate | Property with optional mortgage liability | — |
+| Automobile | Vehicle with purchase price | — |
+| Loan | Amortising loan with auto-computed remaining capital | — |
+| Meal vouchers | Ticket Restaurant and similar | — |
 
-## Automatic bank sync (optional)
+---
+
+## Automatic sync (optional)
 
 All sync modules are **optional** — the app works fully without them. Leave credentials blank to disable a module.
 
 ### Trade Republic
-Available in 18 EU countries (AT, BE, DE, ES, FI, FR, GR, IE, IT, LT, LU, LV, NL, PL, PT, SK, SI, EE).
 
-First-time setup (interactive, required once):
+Available in 18 EU countries: AT, BE, DE, EE, ES, FI, FR, GR, IE, IT, LT, LU, LV, NL, PL, PT, SI, SK.
+
+Set `TR_PHONE` and `TR_PIN` in `.env`. First-time setup (interactive, required once):
+
 ```bash
 docker compose exec -it sync python setup_tr.py
-# Approve in the TR app → enter the 4-digit code
+# Approve the notification in the TR app, then enter the 4-digit code
 ```
 
-Session persists in a Docker volume. Renew when it expires (every few weeks).
+The session persists in a Docker volume. Renew it when it expires (every few weeks).
 
 ### LCL
+
+Set `LCL_LOGIN` and `LCL_PASSWORD` in `.env`. First-time setup:
+
 ```bash
-# First-time setup:
 docker compose exec -it sync python setup_lcl.py
 ```
 
-Requires `LCL_LOGIN` and `LCL_PASSWORD` in `.env`.
-
 ### GoCardless — EU + UK banks via PSD2
-Free account at [bankaccountdata.gocardless.com](https://bankaccountdata.gocardless.com) (50 connections / 90 days free).
 
-Set `GOCARDLESS_SECRET_ID` and `GOCARDLESS_SECRET_KEY` in `.env`, then connect banks from **Settings → Institutions**.
+Create a free account at [bankaccountdata.gocardless.com](https://bankaccountdata.gocardless.com) (50 connections / 90 days of history — no credit card required).
+
+Set `GOCARDLESS_SECRET_ID` and `GOCARDLESS_SECRET_KEY` in `.env`, then connect your banks from **Settings → Institutions**.
+
+---
 
 ## Securing access
 
-By default the app is open — suited for local networks, VPNs, or behind a reverse proxy that handles auth.
+By default the app is open — intended for local networks, VPNs, or a reverse proxy that handles authentication.
 
-### Option 1 — Built-in password
+### Built-in password
+
 ```env
 AUTH_ENABLED=true
 AUTH_PASSWORD=your_password
-# or AUTH_PASSWORD_HASH=bcrypt_hash  (generate: htpasswd -bnBC 10 "" pass | tr -d ':\n')
 ```
 
-### Option 2 — Reverse proxy (recommended if internet-facing)
-Put the app behind any of these:
-- **Nginx Proxy Manager** + Basic Auth
-- **Caddy** + `basicauth` directive
-- **Traefik + Authelia / Authentik** (full SSO)
-- **Cloudflare Access** (zero-trust, free up to 50 users)
+For better security, use a bcrypt hash instead of a plaintext password:
 
-### Option 3 — VPN (simplest)
-Access via **Tailscale**, WireGuard, or OpenVPN — no auth config needed.
+```bash
+# Generate a hash
+htpasswd -bnBC 10 "" your_password | tr -d ':\n'
+```
+
+```env
+AUTH_ENABLED=true
+AUTH_PASSWORD_HASH=<generated hash>
+```
+
+### Reverse proxy (recommended for internet-facing installs)
+
+Any of these work out of the box:
+
+- **Nginx Proxy Manager** — Basic Auth tab
+- **Caddy** — `basicauth` directive
+- **Traefik + Authelia / Authentik** — full SSO
+- **Cloudflare Access** — zero-trust, free up to 50 users
+
+### VPN (simplest)
+
+Use **Tailscale**, WireGuard, or OpenVPN — no auth config needed.
+
+---
 
 ## Updating
 
@@ -129,18 +156,15 @@ docker compose up -d --build
 
 Migrations are applied automatically on startup.
 
+---
+
 ## Roadmap
 
-- [ ] i18n — English UI default + French translation, configurable tax rates per country
-- [ ] CSV import for unsupported accounts
-- [ ] Multi-user support
-- [ ] Demo mode with fictional data
+See [ROADMAP.md](ROADMAP.md).
 
 ## Contributing
 
-Bug reports and PRs are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Note on bank scrapers (LCL, Trade Republic, Swile): these are fragile by nature and depend on each bank's private API. PRs fixing broken scrapers are welcome but not guaranteed to be merged if they rely on undocumented endpoints.
+Bug reports and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

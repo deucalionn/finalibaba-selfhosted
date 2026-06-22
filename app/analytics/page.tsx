@@ -73,11 +73,11 @@ const ISIN_TO_YF_SYMBOL: Record<string, string> = {
 type YFDividendInfo = {
   exDividendDate: Date | null;
   annualYield: number | null;       // trailingAnnualDividendYield (ex: 0.025 = 2.5%) — currency-agnostic
-  annualRatePerShare: number | null; // trailingAnnualDividendRate en devise locale (affiché seulement)
+  annualRatePerShare: number | null; // trailingAnnualDividendRate in local currency (display only)
 };
 
-// Utilise l'endpoint chart (sans auth) pour récupérer l'historique des dividendes.
-// Calcule la prochaine date ex-div par extrapolation de la fréquence historique.
+// Uses the unauthenticated chart endpoint to fetch dividend history.
+// Estimates the next ex-div date by extrapolating historical frequency.
 async function fetchYFDividendForSymbol(symbol: string): Promise<YFDividendInfo> {
   try {
     const res = await fetch(
@@ -99,11 +99,11 @@ async function fetchYFDividendForSymbol(symbol: string): Promise<YFDividendInfo>
       return { exDividendDate: null, annualYield: null, annualRatePerShare: null };
     }
 
-    // Timestamps ex-div triés (clés en secondes)
+    // Sorted ex-div timestamps (keys are Unix seconds)
     const timestamps = Object.keys(divMap).map(Number).sort((a, b) => a - b);
     const amounts = timestamps.map((t) => divMap[String(t)].amount);
 
-    // Fréquence estimée en jours (mensuel / trimestriel / semestriel / annuel)
+    // Estimated frequency in days (monthly / quarterly / semi-annual / annual)
     let freqDays = 365;
     if (timestamps.length >= 2) {
       const gaps = timestamps.slice(1).map((t, i) => (t - timestamps[i]) / 86400);
@@ -113,11 +113,11 @@ async function fetchYFDividendForSymbol(symbol: string): Promise<YFDividendInfo>
     const perYear = Math.round(365 / freqDays);
     const annualRatePerShare = amounts.slice(-perYear).reduce((s, a) => s + a, 0);
 
-    // Yield = taux annuel / cours actuel
+    // Yield = annual rate / current price
     const price = result.meta?.regularMarketPrice as number | undefined;
     const annualYield = price && price > 0 ? annualRatePerShare / price : null;
 
-    // Prochaine date ex-div = dernière + fréquence (avancé d'un cycle si déjà passée)
+    // Next ex-div = last + frequency (advanced one cycle if already past)
     const lastTs = timestamps[timestamps.length - 1];
     const nowSec = Date.now() / 1000;
     let nextTs = lastTs + freqDays * 86400;
@@ -161,7 +161,7 @@ export default async function AnalyticsPage() {
     }),
     prisma.historicalBalance.findMany({ orderBy: { recordedAt: "asc" } }),
     prisma.userSettings.upsert({ where: { id: "singleton" }, create: {}, update: {} }),
-    // Fetch Yahoo Finance en parallèle — dates ex-div + vrais yields (cache 1h)
+    // Fetch Yahoo Finance in parallel — ex-div dates + real yields (1h cache)
     fetchYFDividends(Object.values(ISIN_TO_YF_SYMBOL)),
   ]);
 
@@ -171,26 +171,25 @@ export default async function AnalyticsPage() {
   let totalLatentTax = BigInt(0);
   let techValueCents = BigInt(0);
   let totalInvestCents = BigInt(0);
-  let annualDividendsCents = BigInt(0);    // brut
-  let annualDividendsNetCents = BigInt(0); // net après fiscalité
-  let annualInterestCents = BigInt(0);     // déjà net (livrets exonérés)
+  let annualDividendsCents = BigInt(0);    // gross
+  let annualDividendsNetCents = BigInt(0); // net after tax
+  let annualInterestCents = BigInt(0);     // already net (French regulated savings accounts are income-tax-exempt)
 
-  // Taux effectif de fiscalité sur les dividendes (PFU, résident français)
-  // PEA : réinvesti dans l'enveloppe, pas de fiscalité immédiate
-  // CTO actions FR : PFU 30% (12,8% IR + 17,2% PS)
-  // CTO actions étrangères (traité 15%) : 15% retenue source + 17,2% PS
-  //   → crédit d'impôt efface l'IR 12,8% → effectif 32,2%
-  // Note : estimation sous hypothèse PFU. Le net réel peut différer
-  // selon le choix barème progressif ou abattement 40%.
+  // Effective dividend tax rate for a French tax resident under the flat tax (PFU) regime.
+  // PEA: reinvested within the wrapper — no immediate tax.
+  // CTO French equities: flat tax 30% (12.8% income tax + 17.2% social levies).
+  // CTO foreign equities (15% treaty): 15% withholding + 17.2% social levies
+  //   → tax credit offsets the 12.8% income tax (credit 15% > IR 12.8% → IR = 0) → effective 32.2%.
+  // Note: estimate under flat-tax assumption. Actual net may differ with progressive scale or 40% deduction.
   function dividendEffectiveTaxRate(isin: string, subtype: string | null): number {
     if (subtype === "PEA") return 0;
     const country = isin.slice(0, 2).toUpperCase();
     if (country === "FR") return 0.30;
-    // Pays avec traité 15% avec la France (US, NL, IE, DE, GB, LU, BE...)
-    // Effectif = 15% retenue + 17,2% PS − crédit IR (12,8% < 15% → IR = 0) = 32,2%
+    // Countries with a 15% withholding treaty with France (US, NL, IE, DE, GB, LU, BE...)
+    // Effective = 15% withholding + 17.2% social levies − income tax credit (12.8% < 15% → IT = 0) = 32.2%
     const treaty15 = ["US", "NL", "IE", "DE", "GB", "LU", "BE", "CA", "JP", "CH"];
     if (treaty15.includes(country)) return 0.322;
-    return 0.30; // défaut : PFU sans retenue connue
+    return 0.30; // default: flat tax, no known withholding treaty
   }
 
   type DividendRow = {
@@ -268,7 +267,7 @@ export default async function AnalyticsPage() {
         techValueCents += BigInt(Math.round(Number(mv) * (TECH_WEIGHTS[h.ticker] ?? 0)));
         totalInvestCents += mv;
 
-        // Dividends — vrai yield Yahoo Finance, fallback sur taux hardcodé
+        // Dividends — real Yahoo Finance yield, falls back to hard-coded rate
         const symbol = ISIN_TO_YF_SYMBOL[h.ticker];
         const yfInfo = symbol ? yfData[symbol] : null;
         const divYield = yfInfo?.annualYield ?? DIVIDEND_YIELDS[h.ticker] ?? 0;
@@ -324,7 +323,7 @@ export default async function AnalyticsPage() {
       allocation[account.type === "CRYPTO" ? "Crypto" : "Investissements"] += value;
       grossAssets += value;
     } else if (account.type === "LOAN") {
-      // Crédit : passif pur — réduit le patrimoine net, pas d'actif associé
+      // Loan: pure liability — reduces net worth, no asset counterpart
       const loanBalance = hasLoanParams(account)
         ? calcCurrentCapital(
             {
@@ -338,24 +337,24 @@ export default async function AnalyticsPage() {
           )
         : (account.liabilityCents ?? BigInt(0));
       totalLiabilities += loanBalance;
-      // Ne pas ajouter à assetRows (c'est un passif, pas un actif)
+      // Skip assetRows — this is a liability, not an asset
       continue;
     } else {
       value = account.history[0]?.balanceCents ?? BigInt(0);
       if (account.type === "SAVINGS") {
         allocation["Épargne"] += value;
-        // Taux réglementés au 1er juin 2026 (à mettre à jour si changement de taux)
+        // French regulated savings rates as of 2026-06-01 — update when rates change
         const name = account.name.toLowerCase();
         let rate = 0;
-        if (name.includes("lep")) rate = 0.025;           // LEP : 2,5%
-        else if (name.includes("livret a")) rate = 0.015; // Livret A : 1,5%
-        else if (name.includes("ldds")) rate = 0.015;     // LDDS = Livret A : 1,5%
-        else if (name.includes("livret jeune") || name.includes("jeune")) rate = 0.025; // Livret Jeune : 2,5%
-        else if (name.includes("livret")) rate = 0.015;   // autres livrets réglementés : 1,5%
+        if (name.includes("lep")) rate = 0.025;           // LEP: 2.5%
+        else if (name.includes("livret a")) rate = 0.015; // Livret A: 1.5%
+        else if (name.includes("ldds")) rate = 0.015;     // LDDS = Livret A: 1.5%
+        else if (name.includes("livret jeune") || name.includes("jeune")) rate = 0.025; // Livret Jeune: 2.5%
+        else if (name.includes("livret")) rate = 0.015;   // other regulated savings: 1.5%
         if (rate > 0) annualInterestCents += BigInt(Math.round(Number(value) * rate));
       } else {
         allocation["Liquidités"] += value;
-        // Compte courant Trade Republic : 2% brut → 1,372% net (PFU 31,4% : IR 12,8% prélevé à la source + PS 17,2% + 0,2% contrib. due à la déclaration)
+        // Trade Republic cash account: 2% gross → 1.372% net (flat tax 31.4%: 12.8% income tax withheld at source + 17.2% social levies + 0.2% exceptional contribution)
         if (account.syncId === "tr:cash") {
           annualInterestCents += BigInt(Math.round(Number(value) * 0.01372));
         }
@@ -385,13 +384,13 @@ export default async function AnalyticsPage() {
   const investReturnPct = investTotalCostBasis > BigInt(0)
     ? (Number(investTotalGain) / Number(investTotalCostBasis)) * 100
     : 0;
-  // CAGR global — pondéré par le capital investi si les dates de début sont connues
-  // CAGR(r) = (valeur / coût)^(1/années) − 1
+  // Overall CAGR — weighted by invested capital when start dates are known
+  // CAGR(r) = (value / cost)^(1/years) − 1
   const nowMs = Date.now();
   const investAllHaveDates = investPerfRows.length > 0 && investPerfRows.every((r) => r.investmentStartDate !== null);
   let investCAGR: number | null = null;
   if (investAllHaveDates && investTotalCostBasis > BigInt(0)) {
-    // Durée en années pour chaque compte, pondérée par le coût d'acquisition
+    // Duration in years per account, weighted by cost basis
     const weightedYears = investPerfRows.reduce((sum, r) => {
       const years = (nowMs - r.investmentStartDate!.getTime()) / (365.25 * 86_400_000);
       return sum + years * Number(r.costBasis);
@@ -426,9 +425,9 @@ export default async function AnalyticsPage() {
     ? Math.round((Number(techValueCents) / Number(totalInvestCents)) * 100)
     : 0;
 
-  // ── Passive income (net après fiscalité) ────────────────────────────────
-  // Dividendes : net après PFU/PS selon l'enveloppe
-  // Intérêts livrets : déjà nets (Livret A, LDDS, LEP sont exonérés d'IR en France)
+  // ── Passive income (net after tax) ──────────────────────────────────────
+  // Dividends: net after flat tax / social levies depending on account type
+  // Savings interest: already net (Livret A, LDDS, LEP are income-tax-exempt in France)
   const annualPassiveCents = annualDividendsNetCents + annualInterestCents;
   const dailyPassiveCents = Number(annualPassiveCents) / 365;
   const monthlyPassiveCents = Number(annualPassiveCents) / 12;
@@ -553,7 +552,7 @@ export default async function AnalyticsPage() {
   const totalAllocation = allocationSlices.reduce((s, d) => s + d.value, 0);
 
   // ── Debt accounts ────────────────────────────────────────────────────────
-  // Crédits adossés à un actif (immobilier, auto) uniquement — les LOAN ont leur propre onglet
+  // Asset-backed liabilities (real estate, auto) only — LOAN accounts have their own tab
   const debtAccounts = accounts
     .filter((a) => a.type !== "LOAN" && (a.liabilityCents ?? BigInt(0)) > BigInt(0))
     .map((a) => ({

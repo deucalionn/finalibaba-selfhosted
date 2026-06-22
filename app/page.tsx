@@ -93,7 +93,7 @@ async function getDashboardData() {
       allocation[account.type === "CRYPTO" ? "Crypto" : "Investissements"] += value;
       grossAssets += value;
     } else if (account.type === "LOAN") {
-      // Crédit : passif pur, pas d'actif associé
+      // Loan: pure liability — no asset counterpart
       const loanBalance = hasLoanParams(account)
         ? calcCurrentCapital(
             {
@@ -107,7 +107,7 @@ async function getDashboardData() {
           )
         : (account.liabilityCents ?? BigInt(0));
       totalLiabilities += loanBalance;
-      value = -loanBalance; // affichage : montant négatif dans la liste des comptes
+      value = -loanBalance; // displayed as negative in the account list
     } else {
       value = account.history[0]?.balanceCents ?? BigInt(0);
       if (account.type === "SAVINGS") allocation["Épargne"] += value;
@@ -178,7 +178,7 @@ async function getDashboardData() {
     };
   });
 
-  // Delta 30 jours sur les comptes trackés (fiat + immobilier/auto via HistoricalBalance)
+  // 30-day delta across tracked accounts (fiat + real estate/auto via HistoricalBalance)
   let delta30: { amount: number; percent: number | null } | null = null;
   if (historyRaw.length >= 2) {
     const last = historyRaw[historyRaw.length - 1].netWorth;

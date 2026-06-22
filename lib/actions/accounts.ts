@@ -98,8 +98,8 @@ export async function createAccount(formData: FormData) {
     });
   }
 
-  // Pour les crédits : créer un snapshot à 0 pour activer le compte dans le tracker
-  // historique (liabilityCents sera soustrait dans les graphiques d'évolution du patrimoine).
+  // For loans: seed a zero balance snapshot so the account appears in the history tracker
+  // (liabilityCents is subtracted from net worth charts separately).
   if (isLoan) {
     await prisma.historicalBalance.create({
       data: { accountId: account.id, balanceCents: BigInt(0) },

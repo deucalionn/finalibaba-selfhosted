@@ -31,6 +31,7 @@ rsync -av --delete \
   --exclude='env.server.example' \
   --exclude='.env' \
   --exclude='.env.example' \
+  --exclude='prisma/seed-tr-mock.ts' \
   --exclude='CLAUDE.md' \
   --exclude='README.md' \
   --exclude='AGENTS.md' \
@@ -39,6 +40,7 @@ rsync -av --delete \
   --exclude='CONTRIBUTING.md' \
   --exclude='scripts/' \
   --exclude='.claude/' \
+  --exclude='proxy.ts' \
   --exclude='components/sidebar-wrapper.tsx' \
   --exclude='components/sidebar-dynamic.tsx' \
   --exclude='messages/' \

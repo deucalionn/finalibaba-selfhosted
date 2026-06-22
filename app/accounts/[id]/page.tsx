@@ -37,10 +37,10 @@ const TYPE_TO_TAB: Record<string, string> = {
   LOAN: "credits",
 };
 
-// Taux d'imposition sur les plus-values
+// Capital gains tax rates (French defaults — will be user-configurable post-v1)
 const TAX_RATES: Record<string, number> = {
-  PEA: 0.172,   // prélèvements sociaux uniquement (après 5 ans)
-  CTO: 0.314,   // PFU = 12,8% IR + 17,2% prélèvements sociaux + 0.2% contrib. exceptionnelle hauts revenus
+  PEA: 0.172,   // social levies only (after 5-year holding period)
+  CTO: 0.314,   // flat tax: 12.8% income tax + 17.2% social levies + 0.2% exceptional contribution
   CRYPTO: 0.30, // flat tax 30%
 };
 

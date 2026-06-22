@@ -120,7 +120,7 @@ function buildMarkdown(data: AnalyticsExportData, sections: Set<Section>): strin
   });
   const lines: string[] = [`# Export Analytique — ${date}`, ""];
 
-  // ── Résumé global ──
+  // ── Global summary ──
   if (sections.has("resume")) {
     lines.push("## Résumé global", "");
     lines.push("| Indicateur | Valeur |");

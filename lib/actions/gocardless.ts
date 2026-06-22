@@ -10,7 +10,7 @@ export async function syncGocardlessBalances(institutionId: string) {
     where: { institutionId, gocardlessAccountId: { not: null } },
   });
 
-  if (accounts.length === 0) throw new Error("Aucun compte lié à GoCardless");
+  if (accounts.length === 0) throw new Error("No GoCardless account linked to this institution");
 
   await Promise.all(
     accounts.map(async (account) => {

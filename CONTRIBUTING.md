@@ -18,7 +18,7 @@ Open an issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.
 
 ## Note on bank scrapers
 
-The sync modules for LCL, Trade Republic and Swile (`sync/`) rely on undocumented private APIs and are inherently fragile. PRs fixing broken scrapers are welcome, but:
+The sync modules for LCL and Trade Republic (`sync/`) rely on undocumented private APIs and are inherently fragile. PRs fixing broken scrapers are welcome, but:
 - They may break again without notice when banks update their APIs
 - We cannot guarantee long-term maintenance of scraper-based integrations
 - PRs that introduce new scrapers must include a clear note on their stability

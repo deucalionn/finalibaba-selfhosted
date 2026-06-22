@@ -40,14 +40,14 @@ model Account {
   manualValueCents    BigInt?
   liabilityCents      BigInt?
   purchasePriceCents  BigInt?             // AUTOMOBILE: original purchase price
-  insuranceMonthlyCents BigInt?           // AUTOMOBILE + LOAN: assurance mensuelle
+  insuranceMonthlyCents BigInt?           // AUTOMOBILE + LOAN: monthly insurance premium
   investmentSubtype   String?             // "PEA" | "CTO" — only for INVESTMENT type
   investmentStartDate DateTime?           // Investment start date (manual entry)
   loanAmountCents     BigInt?             // LOAN: initial borrowed amount
   loanTaeg            Float?              // LOAN: annual interest rate in % (e.g. 5.47)
   loanDurationMonths  Int?                // LOAN: total duration in months
   loanDeferralMonths  Int?                // LOAN: deferral period in months (0 = none)
-  loanStartDate       DateTime?           // LOAN: date de début du remboursement
+  loanStartDate       DateTime?           // LOAN: repayment start date
   holdings            Holding[]
   history             HistoricalBalance[]
   transactions        Transaction[]

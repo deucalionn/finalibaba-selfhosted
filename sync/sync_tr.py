@@ -233,10 +233,10 @@ async def _fetch_neon_portfolio_prices(api) -> tuple[dict[str, int], dict[str, s
             if price_val:
                 prices[isin] = int(Decimal(str(price_val)) * 100)
 
-        log.info("TR neonPortfolio: %d prix chargés, %d quantités PE/ELTIF", len(prices), len(neon_quantities))
+        log.info("TR neonPortfolio: %d prices loaded, %d PE/ELTIF quantities", len(prices), len(neon_quantities))
         return prices, neon_quantities
     except Exception as e:
-        log.warning("TR neonPortfolio erreur (fallback ticker) : %s", e)
+        log.warning("TR neonPortfolio error (fallback to ticker): %s", e)
         return {}, {}
 
 
@@ -287,7 +287,7 @@ async def _fetch_all(api, sec_accounts: dict[str, list[str]], has_crypto: bool) 
             all_positions = [p for p in all_positions if not _isin(p).startswith("XF0")]
             if crypto_pos:
                 positions_by_type.setdefault("CRYPTO", []).extend(crypto_pos)
-                log.info("TR %d position(s) crypto (XF000*) séparée(s) du CTO", len(crypto_pos))
+                log.info("TR %d crypto position(s) (XF000*) split from CTO", len(crypto_pos))
 
         if all_positions:
             positions_by_type[acc_type] = all_positions
@@ -379,7 +379,7 @@ def _sync_positions(cur, positions: list, account_id: str, acc_type_label: str, 
                 'UPDATE "Holding" SET "costBasisCents" = %s WHERE "accountId" = %s AND ticker = %s',
                 (cost_basis_cents, account_id, isin),
             )
-        log.info("TR %s — %s (%s) : qté %s @ %d cts", acc_type_label, name, isin, quantity, price_cents)
+        log.info("TR %s — %s (%s): qty %s @ %d cts", acc_type_label, name, isin, quantity, price_cents)
     record_balance(cur, account_id, total_cents)
     return total_cents
 

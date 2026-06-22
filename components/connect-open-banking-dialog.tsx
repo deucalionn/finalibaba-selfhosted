@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef, useTransition } from "react";
 import { Link, Search, Loader2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { setGocardlessInstitutionId } from "@/lib/actions/institutions";
 
 const COUNTRIES = [
@@ -125,6 +123,7 @@ export function ConnectOpenBankingDialog({ institutionId, institutionName }: Pro
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-elevated)] transition-colors text-left disabled:opacity-50 cursor-pointer"
               >
                 {inst.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={inst.logo} alt="" className="w-7 h-7 rounded object-contain bg-white" />
                 ) : (
                   <div className="w-7 h-7 rounded bg-[var(--border)]" />

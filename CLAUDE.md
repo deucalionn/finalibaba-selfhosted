@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 ## Language policy
 
 - **All repo meta** (code comments, README, CLAUDE.md, commit messages, PR descriptions, issue templates) → **English**
-- **UI strings** → managed by `next-intl`. English is the default language (`messages/en.json`). French is a translation (`messages/fr.json`).
+- **UI strings** → currently in French (v1 only). i18n is a post-v1 milestone — not implemented yet.
 - The private upstream repo (`Finalibaba/`) stays in French — it's personal.
 
 ## Relationship with the upstream private repo
@@ -24,7 +24,7 @@ Files excluded from selfhosted:
 
 | Upstream file | Reason |
 |---|---|
-| `.github/workflows/deploy.yml` | Personal VPS deploy (loicserre.freeboxos.fr + private GHCR) |
+| `.github/workflows/deploy.yml` | Personal VPS deploy (private server + private GHCR) |
 | `docker-compose.server.yml` | Pre-built GHCR images + personal Cloudflare tunnel |
 | `env.server.example` | Personal URLs |
 | `CLAUDE.md` | Replaced by this file |
@@ -103,9 +103,11 @@ prisma/
 sync/                 Python FastAPI service (optional bank sync)
   main.py             APScheduler entry point + credential guards
   db.py               Shared PostgreSQL helpers
-  sync_lcl.py         LCL (FR) via Woob
+  sync_lcl.py         LCL (FR) via Woob (hardcoded module)
   sync_tr.py          Trade Republic via pytr
-  sync_swile.py       Swile meal vouchers
+  sync_woob.py        Generic Woob runner for user-configured institutions
+  setup_lcl.py        Interactive first-time LCL setup
+  setup_tr.py         Interactive first-time Trade Republic setup
 public/               Static assets
 proxy.ts              Next.js middleware (root) — auth bypass logic
 ```
@@ -146,13 +148,13 @@ The Next.js app calls the Python sync service via HTTP using `SYNC_SERVICE_URL=h
 
 ### Sync service — optional modules
 
-The `sync/` service has three independent modules:
+The `sync/` service has two dedicated sync modules plus a generic Woob runner:
 
-| Module | Required credentials | Bank |
+| Module | Required credentials | Purpose |
 |---|---|---|
-| `sync_lcl.py` | `LCL_LOGIN`, `LCL_PASSWORD` | LCL (FR) via Woob |
+| `sync_lcl.py` | `LCL_LOGIN`, `LCL_PASSWORD` | LCL (FR) via Woob hardcoded module |
 | `sync_tr.py` | `TR_PHONE`, `TR_PIN` | Trade Republic via pytr |
-| `sync_swile.py` | `SWILE_LOGIN`, `SWILE_PASSWORD` | Swile (meal vouchers, FR) |
+| `sync_woob.py` | Set per-institution in UI | Generic Woob runner for any institution configured in Settings |
 
 Leave credentials blank to disable a module. `sync/main.py` skips gracefully. `sync/db.py` contains shared PostgreSQL helpers — do not duplicate inline.
 
@@ -187,7 +189,7 @@ Latent tax rates: PEA 17.2%, CTO 31.4%, Crypto 30% (French defaults, will be con
 
 ### Amounts & precision
 
-All monetary values stored as **integer cents** (`BigInt`). Arithmetic via `Decimal.js`. Format with `Intl.NumberFormat` (locale-aware via `next-intl`).
+All monetary values stored as **integer cents** (`BigInt`). Arithmetic via `Decimal.js`. Format with `Intl.NumberFormat` (native — no i18n library yet).
 
 ## Design tokens
 
@@ -201,7 +203,7 @@ Defined in `globals.css`. Never use raw Tailwind colour classes for brand colour
 | `--surface` | #13131a | Card backgrounds |
 | `--surface-elevated` | #1a1a24 | Hover states |
 | `--border` | #2a2a38 | Dividers |
-| `--muted` | #6b7280 | Secondary text |
+| `--muted` | #a1a1aa | Secondary text |
 
 ## Next.js version note
 
