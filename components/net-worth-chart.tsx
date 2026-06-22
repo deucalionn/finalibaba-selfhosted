@@ -33,6 +33,7 @@ export function NetWorthChart({ data }: { data: DataPoint[] }) {
   }
 
   return (
+    <div role="img" aria-label="Évolution du patrimoine net">
     <ResponsiveContainer width="100%" height={260}>
       <AreaChart data={data} margin={{ top: 4, right: 0, left: 8, bottom: 0 }}>
         <defs>
@@ -84,5 +85,6 @@ export function NetWorthChart({ data }: { data: DataPoint[] }) {
         />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }

@@ -1028,12 +1028,12 @@ export default async function AnalyticsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-[var(--border)]">
-                        <th className="pb-2 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Compte</th>
-                        <th className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Investi</th>
-                        <th className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                        <th className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value brute</th>
-                        <th className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value nette</th>
-                        <th className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">CAGR</th>
+                        <th scope="col" className="pb-2 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Compte</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Investi</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value brute</th>
+                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value nette</th>
+                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">CAGR</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1200,7 +1200,7 @@ export default async function AnalyticsPage() {
                     <span className="text-sm text-[var(--foreground)] w-20 sm:w-32 shrink-0">
                       {slice.name}
                     </span>
-                    <div className="flex-1 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden" aria-hidden="true">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${pct}%`, background: slice.color }}
@@ -1230,10 +1230,10 @@ export default async function AnalyticsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Mois</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Patrimoine</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Variation</th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">%</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Mois</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Patrimoine</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Variation</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1286,12 +1286,12 @@ export default async function AnalyticsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Actif</th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Catégorie</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value</th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Impôt latent</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">% Brut</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Actif</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Catégorie</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Impôt latent</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">% Brut</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1342,7 +1342,7 @@ export default async function AnalyticsPage() {
                         </td>
                         <td className="px-4 sm:px-6 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-10 sm:w-16 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden">
+                            <div className="w-10 sm:w-16 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden" aria-hidden="true">
                               <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-xs text-[var(--muted)] tabular-nums">{pct}%</span>
@@ -1389,11 +1389,11 @@ export default async function AnalyticsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Bien</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Crédit</th>
-                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Fonds propres</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">LTV</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Bien</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Crédit</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Fonds propres</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">LTV</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1425,7 +1425,7 @@ export default async function AnalyticsPage() {
                         </td>
                         <td className="px-4 sm:px-6 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-10 sm:w-16 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden">
+                            <div className="w-10 sm:w-16 h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden" aria-hidden="true">
                               <div
                                 className={`h-full rounded-full ${
                                   ltv > 80

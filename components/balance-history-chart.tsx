@@ -37,6 +37,7 @@ export function BalanceHistoryChart({ data }: { data: BalancePoint[] }) {
   const pad = (max - min) * 0.15 || max * 0.05;
 
   return (
+    <div role="img" aria-label="Historique du solde">
     <ResponsiveContainer width="100%" height={220}>
       <AreaChart data={data} margin={{ top: 5, right: 4, bottom: 0, left: 8 }}>
         <defs>
@@ -84,5 +85,6 @@ export function BalanceHistoryChart({ data }: { data: BalancePoint[] }) {
         />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }

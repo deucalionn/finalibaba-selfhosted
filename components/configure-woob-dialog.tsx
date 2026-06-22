@@ -72,7 +72,7 @@ export function ConfigureWoobDialog({ institutionId, institutionName, currentMod
       onOpenChange={(v) => { setOpen(v); setError(null); }}
       title={`Sync automatique — ${institutionName}`}
       trigger={
-        <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
+        <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
           <Settings2 size={12} aria-hidden="true" />
           {isConfigured ? "Woob configuré" : "Configurer Woob"}
         </button>
@@ -85,14 +85,15 @@ export function ConfigureWoobDialog({ institutionId, institutionName, currentMod
         </p>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+          <label htmlFor="woob-module" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
             Module Woob
           </label>
           <select
+            id="woob-module"
             value={module}
             onChange={(e) => setModule(e.target.value)}
             required
-            className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30"
+            className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 cursor-pointer"
           >
             <option value="">Sélectionner une banque…</option>
             {WOOB_MODULES.map((m) => (
@@ -103,6 +104,7 @@ export function ConfigureWoobDialog({ institutionId, institutionName, currentMod
           {module === "__custom__" && (
             <input
               type="text"
+              aria-label="Nom du module Woob"
               placeholder="nom_du_module"
               onChange={(e) => setModule(e.target.value === "__custom__" ? "" : e.target.value)}
               className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 mt-1.5"
@@ -115,10 +117,11 @@ export function ConfigureWoobDialog({ institutionId, institutionName, currentMod
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+          <label htmlFor="woob-login" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
             Identifiant / n° client
           </label>
           <input
+            id="woob-login"
             type="text"
             value={login}
             onChange={(e) => setLogin(e.target.value)}
@@ -130,10 +133,11 @@ export function ConfigureWoobDialog({ institutionId, institutionName, currentMod
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+          <label htmlFor="woob-password" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
             Mot de passe
           </label>
           <input
+            id="woob-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

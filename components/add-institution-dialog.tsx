@@ -71,13 +71,14 @@ export function AddInstitutionDialog() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Bank selector */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+          <label htmlFor="inst-bank" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
             Banque
           </label>
           <select
+            id="inst-bank"
             value={selectedModule}
             onChange={(e) => { setSelectedModule(e.target.value); setCustomName(""); }}
-            className={inputClass}
+            className={`${inputClass} cursor-pointer`}
             required
           >
             <option value="">Sélectionner…</option>
@@ -96,10 +97,11 @@ export function AddInstitutionDialog() {
         {/* Custom name for "Autre" */}
         {isCustom && (
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+            <label htmlFor="inst-name" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               Nom
             </label>
             <input
+              id="inst-name"
               type="text"
               name="name"
               value={customName}
@@ -120,10 +122,11 @@ export function AddInstitutionDialog() {
                 Sync automatique via Woob — historique illimité stocké dans votre base.
               </p>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                <label htmlFor="inst-woob-login" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
                   Identifiant / n° client
                 </label>
                 <input
+                  id="inst-woob-login"
                   type="text"
                   name="woobLogin"
                   autoComplete="username"
@@ -132,10 +135,11 @@ export function AddInstitutionDialog() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                <label htmlFor="inst-woob-password" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
                   Mot de passe
                 </label>
                 <input
+                  id="inst-woob-password"
                   type="password"
                   name="woobPassword"
                   autoComplete="current-password"

@@ -38,8 +38,8 @@ export function AutoSync() {
   if (!syncing) return null;
 
   return (
-    <div className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs text-[var(--muted)] shadow-lg">
-      <span className="relative flex h-2 w-2">
+    <div aria-live="polite" aria-label="Synchronisation en cours" className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-1.5 text-xs text-[var(--muted)] shadow-lg">
+      <span className="relative flex h-2 w-2" aria-hidden="true">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75" />
         <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
       </span>

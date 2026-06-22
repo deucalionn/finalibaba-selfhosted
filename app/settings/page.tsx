@@ -15,6 +15,7 @@ import { InstitutionSyncButton } from "@/components/institution-sync-button";
 import { SyncStatus } from "@/components/sync-status";
 import { getSyncStatus } from "@/lib/actions/sync";
 import { getUserSettings, updateUserSettings } from "@/lib/actions/user-settings";
+import { SaveSettingsButton } from "@/components/save-settings-button";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
 
 export default async function SettingsPage() {
@@ -161,6 +162,8 @@ export default async function SettingsPage() {
                   id="salary"
                   name="salary"
                   type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
                   min="0"
                   step="1"
                   defaultValue={Number(userSettings.salaryNetCents) / 100}
@@ -179,6 +182,8 @@ export default async function SettingsPage() {
                   id="expenses"
                   name="expenses"
                   type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
                   min="0"
                   step="1"
                   defaultValue={Number(userSettings.monthlyExpensesCents) / 100}
@@ -197,6 +202,8 @@ export default async function SettingsPage() {
                   id="goal"
                   name="goal"
                   type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
                   min="0"
                   step="1000"
                   defaultValue={Number(userSettings.savingsGoalCents) / 100}
@@ -217,6 +224,8 @@ export default async function SettingsPage() {
                   id="saved"
                   name="saved"
                   type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
                   min="0"
                   step="1"
                   defaultValue={Number(userSettings.monthlySavedCents) / 100}
@@ -229,12 +238,7 @@ export default async function SettingsPage() {
             </div>
           </div>
           <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[var(--accent)] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] cursor-pointer"
-            >
-              Enregistrer
-            </button>
+            <SaveSettingsButton />
           </div>
         </form>
       </section>

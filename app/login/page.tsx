@@ -80,16 +80,16 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset rounded-r-xl"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <p className="text-xs text-[var(--negative)] flex items-center gap-1.5">
-                <span className="inline-block w-1 h-1 rounded-full bg-[var(--negative)]" />
+              <p role="alert" className="text-xs text-[var(--negative)] flex items-center gap-1.5">
+                <span className="inline-block w-1 h-1 rounded-full bg-[var(--negative)]" aria-hidden="true" />
                 {error}
               </p>
             )}
@@ -102,7 +102,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[var(--muted)]">
-          <TrendingUp size={12} />
+          <TrendingUp size={12} aria-hidden="true" />
           <span>Vos données restent sur votre serveur</span>
         </div>
       </div>

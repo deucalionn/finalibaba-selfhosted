@@ -33,6 +33,7 @@ export function AssetAllocationChart({ data }: { data: AllocationSlice[] }) {
 
   return (
     <div>
+      <div role="img" aria-label="Répartition des actifs par catégorie">
       <ResponsiveContainer width="100%" height={190}>
         <PieChart>
           <Pie
@@ -70,6 +71,7 @@ export function AssetAllocationChart({ data }: { data: AllocationSlice[] }) {
           />
         </PieChart>
       </ResponsiveContainer>
+      </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3">
         {nonEmpty.map((entry, index) => (
           <div key={entry.name} className="flex items-center gap-1.5 min-w-0">

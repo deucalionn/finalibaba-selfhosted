@@ -335,7 +335,7 @@ export function ExportAccountsButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:text-[var(--foreground)] hover:border-[var(--accent)]/40 transition-colors"
+        className="flex cursor-pointer items-center gap-1.5 px-3 py-1.5 min-h-[44px] text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:text-[var(--foreground)] hover:border-[var(--accent)]/40 transition-colors"
       >
         <Download size={14} aria-hidden="true" />
         Exporter

@@ -39,13 +39,14 @@ export function Sidebar({ showLogout = false }: SidebarProps) {
           </span>
         </div>
 
-        <nav className="flex flex-col gap-1 flex-1">
+        <nav aria-label="Navigation principale" className="flex flex-col gap-1 flex-1">
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition active:scale-[0.97] active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] ${
                   active
                     ? "bg-[var(--accent)]/15 text-[var(--accent)]"
@@ -75,13 +76,14 @@ export function Sidebar({ showLogout = false }: SidebarProps) {
       </aside>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex bg-[var(--surface)] border-t border-[var(--border)] pb-safe">
+      <nav aria-label="Navigation mobile" className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex bg-[var(--surface)] border-t border-[var(--border)] pb-safe">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 mx-1 rounded-xl transition active:scale-[0.93] active:opacity-80 focus-visible:outline-none focus-visible:bg-[var(--surface-elevated)] ${
                 active
                   ? "text-[var(--accent)] bg-[var(--accent)]/10"
