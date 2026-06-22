@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Relationship with the upstream private repo
 
-The private repo is at `/mnt/c/Projets/Finalibaba/` on the same machine.
+The private repo is at `/home/loic/Projets/Finalibaba/` on the same machine.
 
 **Porting rule:** app-layer changes (features, bug fixes, schema changes) made in `Finalibaba/` should be ported here via `scripts/sync-from-upstream.sh`. Infra-layer changes (deploy pipeline, VPS config, personal credentials) are **never** ported.
 

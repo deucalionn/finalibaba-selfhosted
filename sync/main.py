@@ -4,6 +4,7 @@ Sync service — FastAPI + APScheduler
 Endpoints (internal Docker network only, not exposed externally):
   POST /sync/lcl            → trigger LCL sync
   POST /sync/trade-republic → trigger Trade Republic sync
+  POST /sync/institution/{id} → trigger Woob sync for a specific institution
   GET  /status              → last sync logs per source
 
 Cron: every 4 hours
