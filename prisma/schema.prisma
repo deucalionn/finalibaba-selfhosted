@@ -105,9 +105,12 @@ model Transaction {
 
 model UserSettings {
   id                   String   @id @default("singleton")
-  salaryNetCents       BigInt   @default(0)   // monthly net salary
-  monthlyExpensesCents BigInt   @default(0)   // monthly essential expenses (for runway)
-  savingsGoalCents     BigInt   @default(5000000) // target net worth (default 50 000 €)
-  monthlySavedCents    BigInt   @default(0)       // declared monthly savings (livrets + investments, excl. transfers & market perf)
+  salaryNetCents       BigInt   @default(0)
+  monthlyExpensesCents BigInt   @default(0)
+  savingsGoalCents     BigInt   @default(5000000)
+  monthlySavedCents    BigInt   @default(0)
+  taxRatePea           Float    @default(0.172)
+  taxRateCto           Float    @default(0.314)
+  taxRateCrypto        Float    @default(0.314)
   updatedAt            DateTime @updatedAt
 }

@@ -1,15 +1,15 @@
 /**
- * Loan calculation utilities (account type LOAN).
+ * Utilitaires de calcul pour les crédits (type LOAN).
  *
- * Notation:
- *  - P   : initial borrowed amount (in €)
- *  - r   : monthly rate = TAEG / 100 / 12
- *  - N   : total duration (months)
- *  - D   : deferral period (months) — interest-only payments during this period
- *  - n   : amortization duration = N - D
+ * Terminologie :
+ *  - P   : capital emprunté initial (en €)
+ *  - r   : taux mensuel = TAEG / 100 / 12
+ *  - N   : durée totale (mois)
+ *  - D   : différé total (mois) — pendant lesquels on paie uniquement les intérêts
+ *  - n   : durée d'amortissement = N - D
  */
 
-/** Number of full months elapsed between two dates. */
+/** Nombre de mois entiers écoulés entre deux dates. */
 function monthsBetween(start: Date, end: Date): number {
   return (
     (end.getFullYear() - start.getFullYear()) * 12 +
@@ -19,14 +19,14 @@ function monthsBetween(start: Date, end: Date): number {
 
 export type LoanParams = {
   loanAmountCents: bigint;
-  loanTaeg: number;           // in %, e.g. 5.47
+  loanTaeg: number;           // en % ex: 5.47
   loanDurationMonths: number;
-  loanDeferralMonths: number; // 0 = no deferral
+  loanDeferralMonths: number; // 0 = pas de différé
   loanStartDate: Date;
 };
 
 /**
- * Remaining capital in cents at a given date (default: today).
+ * Capital restant dû en cents à une date donnée (défaut : aujourd'hui).
  */
 export function calcCurrentCapital(
   params: LoanParams,
@@ -42,10 +42,10 @@ export function calcCurrentCapital(
   if (elapsed <= 0) return loanAmountCents;
   if (elapsed >= N) return BigInt(0);
 
-  // During deferral: capital unchanged
+  // Pendant le différé : capital inchangé
   if (elapsed <= D) return loanAmountCents;
 
-  // After deferral: constant annuity over (N - D) months
+  // Après le différé : annuité constante sur (N - D) mois
   const amortMonths = N - D;
   const monthsAmortized = elapsed - D;
 
@@ -63,9 +63,9 @@ export function calcCurrentCapital(
 }
 
 export type MonthlyPayments = {
-  /** Monthly payment during deferral (interest only, excl. insurance). */
+  /** Mensualité pendant le différé (intérêts seuls, hors assurance). */
   deferralPaymentCents: bigint;
-  /** Monthly payment after deferral (principal + interest, excl. insurance). */
+  /** Mensualité après différé (capital + intérêts, hors assurance). */
   amortPaymentCents: bigint;
 };
 
@@ -94,25 +94,25 @@ export function calcMonthlyPayments(params: LoanParams): MonthlyPayments {
 
 export type LoanStats = {
   currentCapitalCents: bigint;
-  /** Monthly payment currently applicable (including insurance if provided). */
+  /** Mensualité actuellement applicable (avec assurance si fournie). */
   currentMonthlyTotalCents: bigint;
-  /** Monthly payment excl. insurance, currently applicable. */
+  /** Mensualité hors assurance actuellement applicable. */
   currentMonthlyBaseCents: bigint;
-  /** Monthly payment during deferral (excl. insurance). */
+  /** Mensualité en différé (hors assurance). */
   deferralPaymentCents: bigint;
-  /** Monthly payment after deferral (excl. insurance). */
+  /** Mensualité après différé (hors assurance). */
   amortPaymentCents: bigint;
-  /** Total interest over the full loan duration (incl. deferral). */
+  /** Intérêts totaux sur toute la durée (y compris différé). */
   totalInterestCents: bigint;
-  /** Total cost of the loan (interest + insurance × N). */
+  /** Coût total du crédit (intérêts + assurance × N). */
   totalCostCents: bigint;
-  /** Theoretical end date. */
+  /** Date de fin théorique. */
   endDate: Date;
-  /** Months elapsed. */
+  /** Mois écoulés. */
   monthsElapsed: number;
-  /** Status: "deferral" | "amortizing" | "finished". */
+  /** Statut : "deferral" | "amortizing" | "finished". */
   status: "deferral" | "amortizing" | "finished";
-  /** Overall progress (0–100). */
+  /** Progression globale (0–100). */
   progressPct: number;
 };
 
@@ -132,7 +132,7 @@ export function calcLoanStats(
   const { deferralPaymentCents, amortPaymentCents } = calcMonthlyPayments(params);
   const currentCapitalCents = calcCurrentCapital(params, asOf);
 
-  // Total interest = (total payments) - principal
+  // Intérêts totaux = (paiements totaux) - capital
   const amortMonths = N - D;
   const totalDeferralInterestCents = BigInt(Math.round(P * r * D * 100));
   const totalAmortPaymentsCents = amortPaymentCents * BigInt(amortMonths);
@@ -175,7 +175,7 @@ export function calcLoanStats(
 }
 
 /**
- * Returns true when an account has all required loan params to compute stats.
+ * Vérifie qu'un compte a tous les paramètres requis pour calculer les stats.
  */
 export function hasLoanParams(account: {
   loanAmountCents: bigint | null;

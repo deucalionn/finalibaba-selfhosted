@@ -24,6 +24,7 @@ echo ""
 rsync -av --delete \
   --exclude='.git/' \
   --exclude='.github/' \
+  --exclude='.gitignore' \
   --exclude='docker-compose.server.yml' \
   --exclude='docker-compose.prod.yml' \
   --exclude='docker-compose.yml' \
@@ -31,7 +32,13 @@ rsync -av --delete \
   --exclude='env.server.example' \
   --exclude='.env' \
   --exclude='.env.example' \
+  --exclude='.env.demo.example' \
   --exclude='prisma/seed-tr-mock.ts' \
+  --exclude='prisma/seed-demo.ts' \
+  --exclude='docker-compose.demo.yml' \
+  --exclude='SECURITY.md' \
+  --exclude='CODE_OF_CONDUCT.md' \
+  --exclude='app/api/gocardless/institutions/' \
   --exclude='CLAUDE.md' \
   --exclude='README.md' \
   --exclude='AGENTS.md' \

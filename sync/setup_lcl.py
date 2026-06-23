@@ -1,16 +1,16 @@
 """
 LCL web login setup — Certicode Plus flow via woob.
 
-Flow:
+Flow :
   1. POST /sync/lcl/setup/start
-     → woob initiates the LCL connection with credentials
-     → LCL sends a Certicode Plus push notification to the mobile app
-     → Returns {"status": "pending_approval"}
+     → woob initie la connexion LCL avec les credentials
+     → LCL envoie une notification Certicode Plus dans l'app mobile
+     → Retourne {"status": "pending_approval"}
 
   2. POST /sync/lcl/setup/complete
-     → woob calls iter_accounts on the same session (cookies preserved)
-     → If the user approved in the LCL app → session established
-     → Returns {"accounts": N}
+     → woob rappelle iter_accounts sur la même session (cookies conservés)
+     → Si l'utilisateur a approuvé dans l'app LCL → session établie
+     → Retourne {"accounts": N}
 """
 import logging
 import os
@@ -18,7 +18,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-# In-memory state between start and complete
+# État en mémoire entre start et complete
 _pending: dict | None = None  # {"w": Woob instance}
 
 
@@ -36,7 +36,7 @@ def _configure_woob():
 
 
 def _iter_accounts(w):
-    """Iterate LCL accounts, ignoring bourse errors (410 Gone)."""
+    """Itère les comptes LCL en ignorant les erreurs bourse (410 Gone)."""
     from woob.core.bcall import CallErrors
     accounts = []
     try:
@@ -46,7 +46,7 @@ def _iter_accounts(w):
         for backend, exc, tb in e.errors:
             msg = (str(exc) + tb).lower()
             if "bourse" in msg or "connectionreset" in msg or "connection aborted" in msg:
-                log.info("LCL setup: bourse unreachable (ignored): %s", exc)
+                log.info("LCL setup: bourse inaccessible (ignoré) : %s", exc)
             else:
                 raise
     return accounts
@@ -65,8 +65,8 @@ def start_setup() -> dict:
 
     try:
         accounts = _iter_accounts(w)
-        # Session still valid — no Certicode Plus needed
-        log.info("LCL setup: session already valid (%d accounts)", len(accounts))
+        # Session encore valide — pas besoin de Certicode Plus
+        log.info("LCL setup: session déjà valide (%d comptes)", len(accounts))
         try:
             w.deinit()
         except Exception:
@@ -78,19 +78,19 @@ def start_setup() -> dict:
             w.deinit()
         except Exception:
             pass
-        raise RuntimeError("Certicode Plus validation expired before approval — try again")
+        raise RuntimeError("Validation Certicode Plus expirée avant d'être approuvée — réessaie")
 
     except (AppValidation, NeedInteractiveFor2FA, NeedInteractive):
-        # Certicode Plus sent — keep the woob instance alive for complete_setup
+        # Certicode Plus envoyé — conserver l'instance woob pour complete_setup
         _pending = {"w": w}
-        log.info("LCL setup: Certicode Plus sent — waiting for user approval")
+        log.info("LCL setup: Certicode Plus envoyé — en attente d'approbation utilisateur")
         return {"status": "pending_approval"}
 
 
 def complete_setup() -> dict:
     global _pending
     if _pending is None:
-        raise RuntimeError("No LCL setup in progress — call start first")
+        raise RuntimeError("Aucun setup LCL en cours — relance start d'abord")
 
     w = _pending["w"]
     from woob.exceptions import AppValidationExpired, AppValidation, NeedInteractiveFor2FA, NeedInteractive
@@ -99,14 +99,14 @@ def complete_setup() -> dict:
         accounts = _iter_accounts(w)
     except AppValidationExpired:
         _cleanup()
-        raise RuntimeError("Certicode Plus validation expired — restart the connection")
+        raise RuntimeError("Validation Certicode Plus expirée — relance la connexion")
     except (AppValidation, NeedInteractiveFor2FA, NeedInteractive):
-        # Not yet approved in the LCL app
-        raise RuntimeError("Connection not yet approved in the LCL app — retry in a few seconds")
+        # Pas encore approuvé dans l'app LCL
+        raise RuntimeError("Connexion non encore approuvée dans l'app LCL — réessaie dans quelques secondes")
 
     count = len(accounts)
     _cleanup()
-    log.info("LCL setup: session established — %d account(s)", count)
+    log.info("LCL setup: session établie — %d compte(s)", count)
     return {"accounts": count}
 
 

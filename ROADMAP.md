@@ -11,7 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org). Minor versions (1.x) 
 *Community-triggered — will be prioritised when there is clear demand from non-French users.*
 
 - [ ] **English UI** — `next-intl` integration (`en` default, `fr` translation). No URL prefix per locale.
-- [ ] **User-configurable tax rates** — PEA, CTO, and Crypto rates editable in Settings instead of hardcoded French defaults. Common presets: Germany (25%), UK (ISA 0%), Belgium (30%).
+- [x] **User-configurable tax rates** — PEA, CTO, and Crypto rates editable in Settings instead of hardcoded French defaults. Common presets: Germany (25%), UK (ISA 0%), Belgium (30%).
 
 ---
 

@@ -160,7 +160,7 @@ Leave credentials blank to disable a module. `sync/main.py` skips gracefully. `s
 
 ### Tax rates
 
-Currently hardcoded as `TAX_RATES` constants in 4 files (`app/page.tsx:14`, `app/accounts/page.tsx:45`, `app/accounts/[id]/page.tsx:41`, `app/analytics/page.tsx:35`). Default values are French rates (PEA 17.2%, CTO 31.4%, Crypto 31.4%). Post-v1, these will move to `UserSettings` to be user-configurable.
+Stored in `UserSettings` (`taxRatePea`, `taxRateCto`, `taxRateCrypto`). All four pages that compute latent taxes (`app/page.tsx`, `app/accounts/page.tsx`, `app/accounts/[id]/page.tsx`, `app/analytics/page.tsx`) fetch settings and use the user-defined rates. Defaults: PEA 17.2%, CTO 31.4%, Crypto 31.4%.
 
 ### Data model
 
@@ -173,14 +173,14 @@ Currently hardcoded as `TAX_RATES` constants in 4 files (`app/page.tsx:14`, `app
 - `Holding` — unique on `(accountId, ticker)`. `costBasisCents` for P&L
 - `HistoricalBalance` — daily balance snapshots
 - `Transaction` — bank movements. `amountCents`: positive = credit, negative = debit. Deduplicated via `syncId`
-- `UserSettings` — singleton (`id = "singleton"`): salary, expenses, savings goal, monthly saved
+- `UserSettings` — singleton (`id = "singleton"`): salary, expenses, savings goal, monthly saved, `taxRatePea`/`taxRateCto`/`taxRateCrypto` (Float, defaults 0.172/0.314/0.314)
 
 ### Net worth calculation
 
 **Gross = fiat balances + holdings market value + real estate/automobile manualValueCents**
 **Net = Gross − liabilityCents − loan remaining capital − latent taxes**
 
-Latent tax rates: PEA 17.2%, CTO 31.4%, Crypto 31.4% (French defaults, will be configurable post-v1).
+Latent tax rates: read from `UserSettings` (defaults: PEA 17.2%, CTO 31.4%, Crypto 31.4%). User-editable in Settings → Fiscalité.
 
 ### Server vs Client boundary
 

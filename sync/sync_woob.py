@@ -8,6 +8,7 @@ For banks that require 2FA on first use, the sync will fail with auth_required.
 Interactive setup (if needed) must be done manually in the container for now.
 """
 import logging
+import os
 import subprocess
 from decimal import Decimal
 from pathlib import Path
@@ -119,7 +120,7 @@ def run(institution_id: str, institution_name: str, module: str, login: str, pas
 
     try:
         accounts = _iter_accounts()
-    except (AppValidation, AppValidationExpired, NeedInteractiveFor2FA, NeedInteractive):
+    except (AppValidation, AppValidationExpired, NeedInteractiveFor2FA, NeedInteractive) as e:
         conn.rollback()
         msg = f"2FA required — run setup manually in the container: docker exec -it finalibaba-sync-1 python sync_woob.py --setup {institution_id}"
         write_sync_log(cur, sync_source, "auth_required", msg)

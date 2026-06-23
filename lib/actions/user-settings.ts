@@ -17,13 +17,20 @@ export async function updateUserSettings(formData: FormData) {
   const expenses = parseCents((formData.get("expenses") as string) || "0");
   const goal = parseCents((formData.get("goal") as string) || "50000");
   const saved = parseCents((formData.get("saved") as string) || "0");
+  const taxRatePea = Math.min(1, Math.max(0, parseFloat((formData.get("taxRatePea") as string) || "17.2") / 100));
+  const taxRateCto = Math.min(1, Math.max(0, parseFloat((formData.get("taxRateCto") as string) || "31.4") / 100));
+  const taxRateCrypto = Math.min(1, Math.max(0, parseFloat((formData.get("taxRateCrypto") as string) || "31.4") / 100));
+
+  const data = { salaryNetCents: salary, monthlyExpensesCents: expenses, savingsGoalCents: goal, monthlySavedCents: saved, taxRatePea, taxRateCto, taxRateCrypto };
 
   await prisma.userSettings.upsert({
     where: { id: "singleton" },
-    create: { salaryNetCents: salary, monthlyExpensesCents: expenses, savingsGoalCents: goal, monthlySavedCents: saved },
-    update: { salaryNetCents: salary, monthlyExpensesCents: expenses, savingsGoalCents: goal, monthlySavedCents: saved },
+    create: data,
+    update: data,
   });
 
+  revalidatePath("/");
+  revalidatePath("/accounts");
   revalidatePath("/analytics");
   revalidatePath("/settings");
 }

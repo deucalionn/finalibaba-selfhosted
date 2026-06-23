@@ -9,12 +9,6 @@ def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
-def get_institution_id(cur, name: str) -> str | None:
-    cur.execute('SELECT id FROM "Institution" WHERE name = %s', (name,))
-    row = cur.fetchone()
-    return row["id"] if row else None
-
-
 def get_woob_institutions(cur) -> list[dict]:
     """Return all institutions with Woob credentials configured."""
     cur.execute(
@@ -22,6 +16,12 @@ def get_woob_institutions(cur) -> list[dict]:
         'WHERE "woobModule" IS NOT NULL AND "woobLogin" IS NOT NULL'
     )
     return cur.fetchall()
+
+
+def get_institution_id(cur, name: str) -> str | None:
+    cur.execute('SELECT id FROM "Institution" WHERE name = %s', (name,))
+    row = cur.fetchone()
+    return row["id"] if row else None
 
 
 def upsert_account(cur, *, sync_id: str, name: str, account_type: str, institution_id: str) -> str:

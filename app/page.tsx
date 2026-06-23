@@ -11,20 +11,23 @@ import Decimal from "decimal.js";
 import { calcCurrentCapital, hasLoanParams } from "@/lib/loan";
 import { getInstitutionLogoUrl } from "@/lib/institutions";
 
-const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.314 };
-
 async function getDashboardData() {
-  const accounts = await prisma.account.findMany({
-    include: {
-      institution: true,
-      holdings: true,
-      history: {
-        orderBy: { recordedAt: "desc" },
-        take: 1,
+  const [accounts, settings] = await Promise.all([
+    prisma.account.findMany({
+      include: {
+        institution: true,
+        holdings: true,
+        history: {
+          orderBy: { recordedAt: "desc" },
+          take: 1,
+        },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    }),
+    prisma.userSettings.upsert({ where: { id: "singleton" }, create: {}, update: {} }),
+  ]);
+
+  const TAX_RATES = { PEA: settings.taxRatePea, CTO: settings.taxRateCto, CRYPTO: settings.taxRateCrypto };
 
   let grossAssets = BigInt(0);
   let totalLiabilities = BigInt(0);
@@ -83,8 +86,10 @@ async function getDashboardData() {
         const taxRate =
           account.type === "CRYPTO"
             ? TAX_RATES.CRYPTO
-            : account.investmentSubtype
-            ? (TAX_RATES[account.investmentSubtype] ?? null)
+            : account.investmentSubtype === "PEA"
+            ? TAX_RATES.PEA
+            : account.investmentSubtype === "CTO"
+            ? TAX_RATES.CTO
             : null;
         if (taxRate !== null && accountGain > BigInt(0)) {
           totalLatentTax += BigInt(Math.round(Number(accountGain) * taxRate));

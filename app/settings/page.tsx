@@ -18,7 +18,7 @@ import { getUserSettings, updateUserSettings } from "@/lib/actions/user-settings
 import { SaveSettingsButton } from "@/components/save-settings-button";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
 
-// Institutions managed by dedicated sync scripts — Woob config button hidden for these
+// Institutions gérées par des scripts dédiés (pas Woob) — identifiées par nom
 const DEDICATED_SYNC_INSTITUTIONS = ["lcl", "trade republic"];
 
 export default async function SettingsPage() {
@@ -238,6 +238,89 @@ export default async function SettingsPage() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">€</span>
               </div>
               <p className="text-xs text-[var(--muted)] opacity-70">Livrets + investissements — hors virements inter-comptes et perf marché</p>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <SaveSettingsButton />
+          </div>
+        </form>
+      </section>
+
+      {/* Fiscalité */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Fiscalité</h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">
+            Taux d&apos;imposition sur les plus-values latentes — utilisé pour calculer le patrimoine net
+          </p>
+        </div>
+        <form action={updateUserSettings} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <label htmlFor="taxRatePea" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                PEA
+              </label>
+              <div className="relative">
+                <input
+                  id="taxRatePea"
+                  name="taxRatePea"
+                  type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  defaultValue={+(userSettings.taxRatePea * 100).toFixed(1)}
+                  placeholder="17.2"
+                  className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 pr-8 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
+              </div>
+              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 17,2 %</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="taxRateCto" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                CTO
+              </label>
+              <div className="relative">
+                <input
+                  id="taxRateCto"
+                  name="taxRateCto"
+                  type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  defaultValue={+(userSettings.taxRateCto * 100).toFixed(1)}
+                  placeholder="31.4"
+                  className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 pr-8 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
+              </div>
+              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 31,4 % (PFU)</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="taxRateCrypto" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                Crypto
+              </label>
+              <div className="relative">
+                <input
+                  id="taxRateCrypto"
+                  name="taxRateCrypto"
+                  type="number"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  defaultValue={+(userSettings.taxRateCrypto * 100).toFixed(1)}
+                  placeholder="31.4"
+                  className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 pr-8 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30 tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
+              </div>
+              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 31,4 % (PFU)</p>
             </div>
           </div>
           <div className="flex justify-end">

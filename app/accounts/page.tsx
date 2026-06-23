@@ -42,11 +42,9 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.314 };
-
-function taxRate(type: string, subtype: string | null): number | null {
-  if (type === "CRYPTO") return TAX_RATES.CRYPTO;
-  if (type === "INVESTMENT" && subtype) return TAX_RATES[subtype] ?? null;
+function taxRate(type: string, subtype: string | null, rates: { PEA: number; CTO: number; CRYPTO: number }): number | null {
+  if (type === "CRYPTO") return rates.CRYPTO;
+  if (type === "INVESTMENT" && subtype) return rates[subtype as "PEA" | "CTO"] ?? null;
   return null;
 }
 
@@ -67,7 +65,7 @@ export default async function AccountsPage({
   const { tab: rawTab = "liquidites" } = await searchParams;
   const tab = (TABS.some((t) => t.id === rawTab) ? rawTab : "liquidites") as TabId;
 
-  const [fiatAccounts, investAccounts, realEstateAccounts, automobileAccounts, loanAccounts, institutions] =
+  const [fiatAccounts, investAccounts, realEstateAccounts, automobileAccounts, loanAccounts, institutions, userSettings] =
     await Promise.all([
       prisma.account.findMany({
         where: { type: { in: ["CHECKING", "SAVINGS", "MEAL_VOUCHER"] } },
@@ -101,7 +99,10 @@ export default async function AccountsPage({
         orderBy: { name: "asc" },
       }),
       prisma.institution.findMany({ orderBy: { name: "asc" } }),
+      prisma.userSettings.upsert({ where: { id: "singleton" }, create: {}, update: {} }),
     ]);
+
+  const TAX_RATES = { PEA: userSettings.taxRatePea, CTO: userSettings.taxRateCto, CRYPTO: userSettings.taxRateCrypto };
 
   const fiatTotal = fiatAccounts.reduce(
     (s, a) => s + (a.history[0]?.balanceCents ?? BigInt(0)),
@@ -171,7 +172,7 @@ export default async function AccountsPage({
   }));
 
   const investExport: InvestAccountExport[] = investAccounts.map((account) => {
-    const rate = taxRate(account.type, account.investmentSubtype ?? null);
+    const rate = taxRate(account.type, account.investmentSubtype ?? null, TAX_RATES);
     const accountTotal = account.holdings.reduce((s, h) => s + holdingValue(h), BigInt(0));
     let accountGain = BigInt(0);
     let hasCostBasis = false;
@@ -375,7 +376,7 @@ export default async function AccountsPage({
             </div>
           ) : (
             investAccounts.map((account) => {
-              const rate = taxRate(account.type, account.investmentSubtype ?? null);
+              const rate = taxRate(account.type, account.investmentSubtype ?? null, TAX_RATES);
               const accountTotal = account.holdings.reduce(
                 (s, h) => s + holdingValue(h),
                 BigInt(0)

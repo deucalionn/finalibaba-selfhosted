@@ -37,16 +37,9 @@ const TYPE_TO_TAB: Record<string, string> = {
   LOAN: "credits",
 };
 
-// Capital gains tax rates (French defaults — will be user-configurable post-v1)
-const TAX_RATES: Record<string, number> = {
-  PEA: 0.172,   // social levies only (after 5-year holding period)
-  CTO: 0.314,   // flat tax: 12.8% income tax + 17.2% social levies + 0.2% exceptional contribution
-  CRYPTO: 0.314, // flat tax: 12.8% income tax + 17.2% social levies (same as CTO — no fiscal advantage)
-};
-
-function getTaxRate(type: string, subtype: string | null): number | null {
-  if (type === "CRYPTO") return TAX_RATES.CRYPTO;
-  if (type === "INVESTMENT" && subtype) return TAX_RATES[subtype] ?? null;
+function getTaxRate(type: string, subtype: string | null, rates: { PEA: number; CTO: number; CRYPTO: number }): number | null {
+  if (type === "CRYPTO") return rates.CRYPTO;
+  if (type === "INVESTMENT" && subtype) return rates[subtype as "PEA" | "CTO"] ?? null;
   return null;
 }
 
@@ -57,26 +50,31 @@ export default async function AccountDetailPage({
 }) {
   const { id } = await params;
 
-  const account = await prisma.account.findUnique({
-    where: { id },
-    include: {
-      institution: true,
-      history: { orderBy: { recordedAt: "desc" }, take: 120 },
-      holdings: { orderBy: { ticker: "asc" } },
-      transactions: { orderBy: { date: "desc" }, take: 200 },
-    },
-  });
+  const [account, userSettings] = await Promise.all([
+    prisma.account.findUnique({
+      where: { id },
+      include: {
+        institution: true,
+        history: { orderBy: { recordedAt: "desc" }, take: 120 },
+        holdings: { orderBy: { ticker: "asc" } },
+        transactions: { orderBy: { date: "desc" }, take: 200 },
+      },
+    }),
+    prisma.userSettings.upsert({ where: { id: "singleton" }, create: {}, update: {} }),
+  ]);
 
   if (!account) notFound();
+
+  const TAX_RATES = { PEA: userSettings.taxRatePea, CTO: userSettings.taxRateCto, CRYPTO: userSettings.taxRateCrypto };
 
   const isFiat = ["CHECKING", "SAVINGS", "MEAL_VOUCHER"].includes(account.type);
   const isInvestment = ["INVESTMENT", "CRYPTO"].includes(account.type);
   const isRealEstate = account.type === "REAL_ESTATE";
   const isAutomobile = account.type === "AUTOMOBILE";
   const isLoan = account.type === "LOAN";
-  const isSynced = !!account.syncId; // woob:, lcl:, tr:, gocardless — all synced accounts
+  const isSynced = !!account.syncId;
 
-  const taxRate = getTaxRate(account.type, account.investmentSubtype ?? null);
+  const taxRate = getTaxRate(account.type, account.investmentSubtype ?? null, TAX_RATES);
 
   // Loan stats (calculated once)
   const loanStats =

@@ -31,8 +31,6 @@ const TYPE_LABELS: Record<string, string> = {
   AUTOMOBILE: "Automobile",
 };
 
-// Tax rates
-const TAX_RATES: Record<string, number> = { PEA: 0.172, CTO: 0.314, CRYPTO: 0.314 };
 
 // Approximate tech exposure per ticker (0–1)
 const TECH_WEIGHTS: Record<string, number> = {
@@ -246,9 +244,11 @@ export default async function AnalyticsPage() {
 
     const taxRate =
       account.type === "CRYPTO"
-        ? TAX_RATES.CRYPTO
-        : account.type === "INVESTMENT" && account.investmentSubtype
-        ? (TAX_RATES[account.investmentSubtype] ?? null)
+        ? settings.taxRateCrypto
+        : account.type === "INVESTMENT" && account.investmentSubtype === "PEA"
+        ? settings.taxRatePea
+        : account.type === "INVESTMENT" && account.investmentSubtype === "CTO"
+        ? settings.taxRateCto
         : null;
 
     if (account.type === "REAL_ESTATE" || account.type === "AUTOMOBILE") {
@@ -1098,7 +1098,7 @@ export default async function AnalyticsPage() {
                 </div>
               )}
               <p className="text-xs text-[var(--muted)] mt-3 opacity-70">
-                CAGR = rendement annuel composé depuis la date de début · Net = brut après impôts latents (PEA {(TAX_RATES.PEA * 100).toFixed(1)}% · CTO {(TAX_RATES.CTO * 100).toFixed(1)}%) — non encore réalisés.
+                CAGR = rendement annuel composé depuis la date de début · Net = brut après impôts latents (PEA {(settings.taxRatePea * 100).toFixed(1)}% · CTO {(settings.taxRateCto * 100).toFixed(1)}%) — non encore réalisés.
                 {!investAllHaveDates && investPerfRows.length > 0 && (
                   <> · Renseigne la date de début dans chaque page de compte pour activer le CAGR.</>
                 )}

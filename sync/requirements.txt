@@ -1,4 +1,4 @@
-woob[lcl]==3.7.*
+woob[lcl,swile]==3.7.*
 pytr @ git+https://github.com/pytr-org/pytr.git
 psycopg2-binary>=2.9
 fastapi>=0.115
