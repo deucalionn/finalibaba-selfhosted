@@ -72,12 +72,12 @@ async function main() {
     investmentStartDate: new Date("2022-01-05"),
   }});
 
-  // Immobilier & auto
-  await prisma.account.create({ data: { name: "Appartement — Paris 11e", type: "REAL_ESTATE", manualValueCents: EUR(295_000) } });
-  await prisma.account.create({ data: { name: "Hyundai i30N", type: "AUTOMOBILE", manualValueCents: EUR(24_000), purchasePriceCents: EUR(31_500) } });
+  // Immobilier & auto (IDs capturés pour l'historique)
+  const appart  = await prisma.account.create({ data: { name: "Appartement — Paris 11e", type: "REAL_ESTATE", manualValueCents: EUR(295_000) } });
+  const voiture = await prisma.account.create({ data: { name: "Hyundai i30N", type: "AUTOMOBILE", manualValueCents: EUR(24_000), purchasePriceCents: EUR(31_500) } });
 
-  // Prêts
-  await prisma.account.create({ data: {
+  // Prêts (IDs capturés pour l'historique)
+  const pretImmo = await prisma.account.create({ data: {
     name: "Prêt immobilier",
     type: "LOAN",
     loanAmountCents:    EUR(180_000),
@@ -87,7 +87,7 @@ async function main() {
     loanStartDate:      new Date("2022-06-01"),
     insuranceMonthlyCents: EUR(45),
   }});
-  await prisma.account.create({ data: {
+  const pretAuto = await prisma.account.create({ data: {
     name: "Prêt auto",
     type: "LOAN",
     loanAmountCents:    EUR(12_000),
@@ -147,14 +147,44 @@ async function main() {
     [3_200, 8_500, 12_000, 425],
   ];
 
+  // Prêt immo : capital restant approx à chaque mois (négatif = passif dans le graphique)
+  // Démarré juin 2022 — au mois 23 (juillet 2024) ≈ 170k restant → aujourd'hui ≈ 158k
+  const mortgageAtOldest = 170_000;
+  const mortgageAtNow    = 158_000;
+
+  // Prêt auto : démarré jan 2024 — au mois 23 (juillet 2024, 6 mois) ≈ 10 500 → aujourd'hui ≈ 7 500
+  const carLoanAtOldest = 10_500;
+  const carLoanAtNow    = 7_500;
+
+  // Voiture : achetée jan 2024 pour 31 500 → 24 000 aujourd'hui (6k sur ~30 mois ≈ 200€/mois)
+  const carAtOldest = 30_000; // 6 mois après achat (juillet 2024)
+  const carAtNow    = 24_000;
+
+  const N = history.length - 1; // = 23
+
   for (let i = 0; i < history.length; i++) {
     const monthsBack = history.length - 1 - i;
+    const t = i / N; // 0 = oldest, 1 = most recent
     const [ch, ld, la, tk] = history[i];
+
+    // Valeurs interpolées linéairement
+    const aptVal      = EUR(295_000); // appartement constant
+    const carVal      = EUR(Math.round(carAtOldest + t * (carAtNow - carAtOldest)));
+    const mortgageVal = EUR(-Math.round(mortgageAtOldest + t * (mortgageAtNow - mortgageAtOldest)));
+    const carLoanVal  = EUR(-Math.round(carLoanAtOldest + t * (carLoanAtNow - carLoanAtOldest)));
+
     await prisma.historicalBalance.createMany({ data: [
-      { accountId: checking.id, balanceCents: EUR(ch), recordedAt: at(monthsBack) },
-      { accountId: ldds.id,     balanceCents: EUR(ld), recordedAt: at(monthsBack) },
-      { accountId: livretA.id,  balanceCents: EUR(la), recordedAt: at(monthsBack) },
-      { accountId: tickets.id,  balanceCents: EUR(tk), recordedAt: at(monthsBack) },
+      // Comptes fiat
+      { accountId: checking.id, balanceCents: EUR(ch),      recordedAt: at(monthsBack) },
+      { accountId: ldds.id,     balanceCents: EUR(ld),      recordedAt: at(monthsBack) },
+      { accountId: livretA.id,  balanceCents: EUR(la),      recordedAt: at(monthsBack) },
+      { accountId: tickets.id,  balanceCents: EUR(tk),      recordedAt: at(monthsBack) },
+      // Patrimoine physique
+      { accountId: appart.id,   balanceCents: aptVal,       recordedAt: at(monthsBack) },
+      { accountId: voiture.id,  balanceCents: carVal,       recordedAt: at(monthsBack) },
+      // Passifs (valeurs négatives → soustraits du patrimoine net historique)
+      { accountId: pretImmo.id, balanceCents: mortgageVal,  recordedAt: at(monthsBack) },
+      { accountId: pretAuto.id, balanceCents: carLoanVal,   recordedAt: at(monthsBack) },
     ]});
   }
 
@@ -228,14 +258,17 @@ async function main() {
   const peaVal    = 45 * 113 + 20 * 618;
   const ctoVal    = 15 * 184 + 10 * 432;
   const cryptoVal = 0.17 * 92_000 + 1.5 * 3_400;
-  console.log("Portfolio overview (seed prices):");
-  console.log(`  Fiat    : ~24 100 €`);
-  console.log(`  PEA     : ~${peaVal.toLocaleString("fr-FR")} €`);
-  console.log(`  CTO     : ~${ctoVal.toLocaleString("fr-FR")} €`);
-  console.log(`  Crypto  : ~${Math.round(cryptoVal).toLocaleString("fr-FR")} €`);
-  console.log("  Immo    : 295 000 €  |  Prêt ~158 k€ restant");
-  console.log("  Auto    : 24 000 €   |  Prêt auto ~8 k€ restant");
-  console.log(`  TOTAL BRUT ≈ ${Math.round(24100 + peaVal + ctoVal + cryptoVal + 295_000 + 24_000).toLocaleString("fr-FR")} €`);
+  const gross     = Math.round(24_100 + peaVal + ctoVal + cryptoVal + 295_000 + 24_000);
+  const net       = Math.round(gross - 158_000 - 7_500);
+  console.log("Portfolio overview (prix seedés — mis à jour par Yahoo Finance ensuite) :");
+  console.log(`  Fiat    :  ~24 100 €`);
+  console.log(`  PEA     :  ~${peaVal.toLocaleString("fr-FR")} €  (45×IWDA.L + 20×CSPX.L)`);
+  console.log(`  CTO     :  ~${ctoVal.toLocaleString("fr-FR")} €   (15×AAPL + 10×MSFT)`);
+  console.log(`  Crypto  :  ~${Math.round(cryptoVal).toLocaleString("fr-FR")} €  (0,17 BTC + 1,5 ETH)`);
+  console.log(`  Immo    :  295 000 €  |  Prêt ~158 k€ restant`);
+  console.log(`  Auto    :   24 000 €  |  Prêt auto ~7,5 k€ restant`);
+  console.log(`  BRUT    :  ~${gross.toLocaleString("fr-FR")} €`);
+  console.log(`  NET     :  ~${net.toLocaleString("fr-FR")} € (après prêts, avant impôts latents)`);
 }
 
 main()
