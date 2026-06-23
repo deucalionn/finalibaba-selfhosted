@@ -99,19 +99,22 @@ async function main() {
   }});
 
   // ── Holdings ──────────────────────────────────────────────────────────────
-  // Prices are fetched live from Yahoo Finance — costBasisCents is total acquisition cost
+  // lastPriceCents = prix de seed réaliste (mis à jour ensuite par Yahoo Finance)
+  // Tous les prix en €-cents (mid-2026)
   console.log("Creating holdings…");
   await prisma.holding.createMany({ data: [
-    // PEA — trackers monde (tickers valides Yahoo Finance)
-    { accountId: pea.id, ticker: "IWDA.L", name: "iShares Core MSCI World ETF",  quantity: "45",   lastPriceCents: BigInt(0), costBasisCents: EUR(3_798) },
-    { accountId: pea.id, ticker: "CSPX.L", name: "iShares Core S&P 500 ETF",     quantity: "20",   lastPriceCents: BigInt(0), costBasisCents: EUR(10_240) },
-    // CTO — actions US
-    { accountId: cto.id, ticker: "AAPL",   name: "Apple Inc.",                    quantity: "15",   lastPriceCents: BigInt(0), costBasisCents: EUR(2_370) },
-    { accountId: cto.id, ticker: "MSFT",   name: "Microsoft Corp.",               quantity: "10",   lastPriceCents: BigInt(0), costBasisCents: EUR(3_480) },
-    // Crypto — BTC + ETH (tickers EUR sur Yahoo Finance)
-    { accountId: cryptoTR.id, ticker: "BTC-EUR", name: "Bitcoin",   quantity: "0.12", lastPriceCents: BigInt(0), costBasisCents: EUR(5_400) },
-    { accountId: cryptoTR.id, ticker: "ETH-EUR", name: "Ethereum",  quantity: "1.5",  lastPriceCents: BigInt(0), costBasisCents: EUR(4_200) },
-    { accountId: btcCB.id,    ticker: "BTC-EUR", name: "Bitcoin",   quantity: "0.05", lastPriceCents: BigInt(0), costBasisCents: EUR(1_500) },
+    // PEA — trackers monde
+    // IWDA.L (iShares MSCI World, LSE) ≈ 113 € · CSPX.L (S&P 500, LSE) ≈ 618 €
+    { accountId: pea.id, ticker: "IWDA.L", name: "iShares Core MSCI World ETF",  quantity: "45",   lastPriceCents: EUR(113),    costBasisCents: EUR(3_798) },
+    { accountId: pea.id, ticker: "CSPX.L", name: "iShares Core S&P 500 ETF",     quantity: "20",   lastPriceCents: EUR(618),    costBasisCents: EUR(10_240) },
+    // CTO — actions US (prix en EUR après change USD/EUR ≈ 0.92)
+    // AAPL ≈ 200 $ → 184 € · MSFT ≈ 470 $ → 432 €
+    { accountId: cto.id, ticker: "AAPL",   name: "Apple Inc.",                    quantity: "15",   lastPriceCents: EUR(184),    costBasisCents: EUR(2_370) },
+    { accountId: cto.id, ticker: "MSFT",   name: "Microsoft Corp.",               quantity: "10",   lastPriceCents: EUR(432),    costBasisCents: EUR(3_480) },
+    // Crypto — BTC ≈ 92 000 € · ETH ≈ 3 400 €
+    { accountId: cryptoTR.id, ticker: "BTC-EUR", name: "Bitcoin",   quantity: "0.12", lastPriceCents: EUR(92_000), costBasisCents: EUR(5_400) },
+    { accountId: cryptoTR.id, ticker: "ETH-EUR", name: "Ethereum",  quantity: "1.5",  lastPriceCents: EUR(3_400),  costBasisCents: EUR(4_200) },
+    { accountId: btcCB.id,    ticker: "BTC-EUR", name: "Bitcoin",   quantity: "0.05", lastPriceCents: EUR(92_000), costBasisCents: EUR(1_500) },
   ]});
 
   // ── Historical balances — 24 months ───────────────────────────────────────
@@ -222,13 +225,17 @@ async function main() {
   });
 
   console.log("Done — demo data seeded.");
-  console.log("Portfolio overview:");
-  console.log("  Fiat : ~24 100 €  (compte + LDDS + Livret A + TR)");
-  console.log("  PEA  : ~14 000 € invested (live prices via Yahoo Finance)");
-  console.log("  CTO  : ~5 850 € invested");
-  console.log("  Crypto: 0.17 BTC + 1.5 ETH (live prices)");
-  console.log("  Immo  : 295 000 €  |  Prêt ~158 k€ restant");
-  console.log("  Auto  : 19 500 €   |  Prêt auto ~8 k€ restant");
+  const peaVal    = 45 * 113 + 20 * 618;
+  const ctoVal    = 15 * 184 + 10 * 432;
+  const cryptoVal = 0.17 * 92_000 + 1.5 * 3_400;
+  console.log("Portfolio overview (seed prices):");
+  console.log(`  Fiat    : ~24 100 €`);
+  console.log(`  PEA     : ~${peaVal.toLocaleString("fr-FR")} €`);
+  console.log(`  CTO     : ~${ctoVal.toLocaleString("fr-FR")} €`);
+  console.log(`  Crypto  : ~${Math.round(cryptoVal).toLocaleString("fr-FR")} €`);
+  console.log("  Immo    : 295 000 €  |  Prêt ~158 k€ restant");
+  console.log("  Auto    : 24 000 €   |  Prêt auto ~8 k€ restant");
+  console.log(`  TOTAL BRUT ≈ ${Math.round(24100 + peaVal + ctoVal + cryptoVal + 295_000 + 24_000).toLocaleString("fr-FR")} €`);
 }
 
 main()
