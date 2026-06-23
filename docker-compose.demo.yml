@@ -41,6 +41,7 @@ services:
       NEXTAUTH_SECRET: ${DEMO_NEXTAUTH_SECRET:?DEMO_NEXTAUTH_SECRET is required}
       NEXTAUTH_URL: ${DEMO_URL:-http://localhost:3003}
       AUTH_ENABLED: "false"
+      DEMO_MODE: "true"
       SYNC_SERVICE_URL: http://sync-demo:8000
     ports:
       - "${DEMO_PORT:-3003}:3000"
