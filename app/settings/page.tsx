@@ -68,7 +68,7 @@ export default async function SettingsPage() {
             {institutions.map((inst) => (
               <div
                 key={inst.id}
-                className="px-5 py-3.5 flex items-center justify-between"
+                className="px-5 py-3.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <InstitutionLogo
@@ -333,25 +333,27 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* Auto-sync */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.sync.title")}</h2>
-          <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.sync.subtitle")}</p>
-        </div>
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl px-5 divide-y divide-[var(--border)]">
-          <SyncStatus
-            source="lcl"
-            label="LCL"
-            log={syncStatus["lcl"] ?? null}
-          />
-          <SyncStatus
-            source="trade-republic"
-            label="Trade Republic"
-            log={syncStatus["trade_republic"] ?? null}
-          />
-        </div>
-      </section>
+      {/* Auto-sync — hidden in demo mode (no real credentials, mutations blocked) */}
+      {process.env.DEMO_MODE !== "true" && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.sync.title")}</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.sync.subtitle")}</p>
+          </div>
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl px-5 divide-y divide-[var(--border)]">
+            <SyncStatus
+              source="lcl"
+              label="LCL"
+              log={syncStatus["lcl"] ?? null}
+            />
+            <SyncStatus
+              source="trade-republic"
+              label="Trade Republic"
+              log={syncStatus["trade_republic"] ?? null}
+            />
+          </div>
+        </section>
+      )}
 
     </div>
   );

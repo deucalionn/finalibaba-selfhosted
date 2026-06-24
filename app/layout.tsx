@@ -55,7 +55,7 @@ export default async function RootLayout({
           </a>
           <SidebarWrapper />
           <main id="main-content" className="flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:p-8 md:pb-8">{children}</main>
-          <AutoSync />
+          {process.env.DEMO_MODE !== "true" && <AutoSync />}
         </NextIntlClientProvider>
       </body>
     </html>
