@@ -67,18 +67,15 @@ export async function triggerInstitutionSync(institutionId: string) {
 }
 
 export async function autoTriggerSync(): Promise<{ triggered: boolean }> {
-  const lastTR = await prisma.syncLog.findFirst({
-    where: { source: "trade_republic", status: "success" },
+  const lastSync = await prisma.syncLog.findFirst({
+    where: { status: "success" },
     orderBy: { createdAt: "desc" },
   });
 
   const STALE_MS = 10 * 60 * 1000;
-  const isStale = !lastTR || Date.now() - lastTR.createdAt.getTime() > STALE_MS;
+  const isStale = !lastSync || Date.now() - lastSync.createdAt.getTime() > STALE_MS;
   if (!isStale) return { triggered: false };
 
-  await Promise.allSettled([
-    fetch(`${SYNC_URL}/sync/trade-republic/async`, { method: "POST" }),
-    fetch(`${SYNC_URL}/sync/lcl/async`, { method: "POST" }),
-  ]);
+  await fetch(`${SYNC_URL}/sync/all/async`, { method: "POST" }).catch(() => {});
   return { triggered: true };
 }

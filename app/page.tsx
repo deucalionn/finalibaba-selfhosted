@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/format";
 import { NetWorthChart } from "@/components/net-worth-chart";
 import { AssetAllocationChart, type AllocationSlice } from "@/components/asset-allocation-chart";
-import { AutoSync } from "@/components/auto-sync";
 import { InstitutionLogo } from "@/components/institution-logo";
 import Link from "next/link";
 import Decimal from "decimal.js";
@@ -230,7 +229,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <AutoSync />
       <div>
         <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("dashboard.title")}</h1>
         <p className="text-sm text-[var(--muted)] mt-1">{t("dashboard.subtitle")}</p>

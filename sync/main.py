@@ -186,6 +186,15 @@ async def trigger_lcl_async():
     return {"status": "started", "source": "lcl"}
 
 
+@app.post("/sync/all/async")
+async def trigger_all_async():
+    """Fire-and-forget — triggers LCL, TR, and all Woob institutions in the background."""
+    import asyncio
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(executor, _run_all)
+    return {"status": "started"}
+
+
 @app.get("/status")
 async def get_status():
     try:
