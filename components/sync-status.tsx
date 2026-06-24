@@ -198,7 +198,7 @@ export function SyncStatus({ source, label, log }: Props) {
             <button
               onClick={handleCompleteTRSetup}
               disabled={code.length !== 4 || setupStep === "submitting"}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
             >
               {setupStep === "submitting" ? (
                 <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> {t("validating")}</>
@@ -226,7 +226,7 @@ export function SyncStatus({ source, label, log }: Props) {
             <button
               onClick={handleCompleteLCLSetup}
               disabled={setupStep === "completing"}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
             >
               {setupStep === "completing" ? (
                 <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> {t("validating")}</>

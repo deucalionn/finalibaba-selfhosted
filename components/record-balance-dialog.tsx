@@ -51,6 +51,7 @@ export function RecordBalanceDialog({
           label={t("balance")}
           name="balance"
           type="number"
+          inputMode="decimal"
           step="0.01"
           defaultValue={current}
           required

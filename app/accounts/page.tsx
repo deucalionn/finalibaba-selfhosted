@@ -268,7 +268,7 @@ export default async function AccountsPage({
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("title")}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <ExportAccountsButton
             fiatAccounts={fiatExport}
             investAccounts={investExport}

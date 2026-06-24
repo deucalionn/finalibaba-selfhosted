@@ -239,7 +239,7 @@ export default async function DashboardPage() {
       {/* Hero KPI */}
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 sm:p-8">
         <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">{t("dashboard.netWorth")}</p>
-        <p className="text-4xl sm:text-5xl font-bold tabular-nums text-[var(--accent)] break-all leading-none">
+        <p className="text-4xl sm:text-5xl font-bold tabular-nums text-[var(--accent)] break-words leading-none">
           {formatCurrency(netWorth, 0)}
         </p>
         {delta30 && (

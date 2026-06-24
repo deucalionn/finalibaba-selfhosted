@@ -425,7 +425,7 @@ export function ExportAccountsButton({
               <button
                 onClick={() => setOpen(false)}
                 aria-label={t("close")}
-                className="cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] p-1 rounded-lg hover:bg-[var(--surface-elevated)] transition-colors"
+                className="cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--surface-elevated)] transition-colors"
               >
                 <X size={16} aria-hidden="true" />
               </button>

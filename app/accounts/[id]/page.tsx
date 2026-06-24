@@ -528,7 +528,7 @@ export default async function AccountDetailPage({
               />
               <button
                 type="submit"
-                className="text-xs px-3 py-2 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25 active:scale-[0.97] transition cursor-pointer font-medium min-h-[36px]"
+                className="text-xs px-3 py-2 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25 active:scale-[0.97] transition cursor-pointer font-medium min-h-[44px]"
               >
                 {td("fiscalSummary.save")}
               </button>
@@ -839,7 +839,7 @@ export default async function AccountDetailPage({
                       year: "numeric",
                     }).format(tx.date)}
                   </td>
-                  <td className="px-3 sm:px-6 py-3 text-[var(--foreground)] max-w-[140px] sm:max-w-xs truncate">
+                  <td className="px-3 sm:px-6 py-3 text-[var(--foreground)] max-w-[140px] sm:max-w-xs truncate" title={tx.label ?? undefined}>
                     {tx.label}
                   </td>
                   <td className="px-3 sm:px-6 py-3 tabular-nums font-medium whitespace-nowrap">

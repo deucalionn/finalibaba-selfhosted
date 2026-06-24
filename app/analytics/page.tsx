@@ -630,14 +630,14 @@ export default async function AnalyticsPage() {
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("title")}</h1>
           <p className="text-sm text-[var(--muted)] mt-1">{t("subtitle")}</p>
         </div>
-        <ExportAnalyticsButton data={analyticsExport} />
+        <div className="shrink-0"><ExportAnalyticsButton data={analyticsExport} /></div>
       </div>
 
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
           <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.netWorth")}</p>
-          <p className="text-2xl font-semibold tabular-nums text-[var(--accent)]">
+          <p className="text-xl sm:text-2xl font-semibold tabular-nums text-[var(--accent)]">
             {formatCurrency(hasTaxData ? netWorthAfterTax : netWorth, 0)}
           </p>
           {momDelta !== null && (
@@ -658,13 +658,13 @@ export default async function AnalyticsPage() {
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
           <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.grossWorth")}</p>
-          <p className="text-2xl font-semibold tabular-nums text-[var(--foreground)]">
+          <p className="text-xl sm:text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatCurrency(grossAssets, 0)}
           </p>
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
           <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.totalLiabilities")}</p>
-          <p className="text-2xl font-semibold tabular-nums text-[var(--negative)]">
+          <p className="text-xl sm:text-2xl font-semibold tabular-nums text-[var(--negative)]">
             {formatCurrency(totalLiabilities + totalLatentTax, 0)}
           </p>
           {grossAssets > BigInt(0) && (
@@ -682,7 +682,7 @@ export default async function AnalyticsPage() {
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
           <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.investedRate")}</p>
-          <p className="text-2xl font-semibold tabular-nums text-[var(--foreground)]">
+          <p className="text-xl sm:text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {investedPct}%
           </p>
           <p className="text-xs text-[var(--muted)] mt-1">{t("kpis.ofGross")}</p>
