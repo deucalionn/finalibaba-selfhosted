@@ -3,7 +3,6 @@
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { setLocale } from "@/lib/actions/locale";
 
 export function LanguageSwitcher() {
   const locale = useLocale();
@@ -12,7 +11,7 @@ export function LanguageSwitcher() {
 
   function switchLocale(next: string) {
     startTransition(async () => {
-      await setLocale(next);
+      await fetch(`/api/set-locale?locale=${next}`);
       router.refresh();
     });
   }
