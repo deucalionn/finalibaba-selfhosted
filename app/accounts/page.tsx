@@ -334,7 +334,7 @@ export default async function AccountsPage({
                           />
                         )}
                         <p className="text-xs text-[var(--muted)]">
-                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}
+                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as Parameters<typeof ta>[0])}
                         </p>
                       </div>
                       <p className="font-medium text-[var(--foreground)] truncate">{account.name}</p>
@@ -409,7 +409,7 @@ export default async function AccountsPage({
                           />
                         )}
                         <p className="text-xs text-[var(--muted)] truncate">
-                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}
+                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as Parameters<typeof ta>[0])}
                           {account.investmentSubtype && ` · ${account.investmentSubtype}`}
                         </p>
                       </div>

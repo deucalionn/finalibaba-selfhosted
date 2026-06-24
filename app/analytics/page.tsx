@@ -1306,13 +1306,13 @@ export default async function AnalyticsPage() {
                         <td className="px-4 sm:px-6 py-3">
                           <p className="font-medium text-[var(--foreground)]">{asset.name}</p>
                           <p className="text-xs text-[var(--muted)] sm:hidden">
-                            {ta(asset.type as any)}
+                            {ta(asset.type as Parameters<typeof ta>[0])}
                             {asset.subtype && ` · ${asset.subtype}`}
                           </p>
                           <p className="hidden sm:block text-xs text-[var(--muted)]">{asset.institution}</p>
                         </td>
                         <td className="hidden sm:table-cell px-6 py-3 text-[var(--muted)]">
-                          {ta(asset.type as any)}
+                          {ta(asset.type as Parameters<typeof ta>[0])}
                           {asset.subtype && <span className="ml-1 text-xs">· {asset.subtype}</span>}
                         </td>
                         <td className="px-4 sm:px-6 py-3 tabular-nums font-medium text-[var(--foreground)]">

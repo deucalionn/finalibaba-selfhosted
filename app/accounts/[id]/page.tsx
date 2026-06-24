@@ -237,7 +237,7 @@ export default async function AccountDetailPage({
                 />
               )}
               <p className="text-xs text-[var(--muted)]">
-                {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}{subtypeLabel}
+                {account.institution?.name && `${account.institution.name} · `}{ta(account.type as Parameters<typeof ta>[0])}{subtypeLabel}
               </p>
             </div>
             <h1 className="text-2xl font-semibold text-[var(--foreground)]">{account.name}</h1>
