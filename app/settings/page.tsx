@@ -17,6 +17,7 @@ import { getSyncStatus } from "@/lib/actions/sync";
 import { getUserSettings, updateUserSettings } from "@/lib/actions/user-settings";
 import { SaveSettingsButton } from "@/components/save-settings-button";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 // Institutions gérées par des scripts dédiés (pas Woob) — identifiées par nom
 const DEDICATED_SYNC_INSTITUTIONS = ["lcl", "trade republic"];
@@ -24,7 +25,7 @@ const DEDICATED_SYNC_INSTITUTIONS = ["lcl", "trade republic"];
 export default async function SettingsPage() {
   const gcConfigured = !!process.env.GOCARDLESS_SECRET_ID;
 
-  const [institutions, syncStatus, userSettings] = await Promise.all([
+  const [institutions, syncStatus, userSettings, t] = await Promise.all([
     prisma.institution.findMany({
       include: {
         _count: { select: { accounts: true } },
@@ -34,25 +35,22 @@ export default async function SettingsPage() {
     }),
     getSyncStatus(),
     getUserSettings(),
+    getTranslations(),
   ]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">Paramètres</h1>
-        <p className="text-sm text-[var(--muted)] mt-1">
-          Configuration de votre espace
-        </p>
+        <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("settings.title")}</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">{t("settings.subtitle")}</p>
       </div>
 
       {/* Institutions */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[var(--foreground)]">Institutions</h2>
-            <p className="text-xs text-[var(--muted)] mt-0.5">
-              Banques, courtiers, plateformes crypto…
-            </p>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.institutions.title")}</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.institutions.subtitle")}</p>
           </div>
           <AddInstitutionDialog />
         </div>
@@ -60,8 +58,8 @@ export default async function SettingsPage() {
         {institutions.length === 0 ? (
           <EmptyState
             icon={Settings}
-            title="Aucune institution"
-            description="Ajoutez votre première institution pour commencer à créer des comptes."
+            title={t("settings.institutions.emptyTitle")}
+            description={t("settings.institutions.emptyDescription")}
             action={<AddInstitutionDialog />}
           />
         ) : (
@@ -82,10 +80,11 @@ export default async function SettingsPage() {
                       {inst.name}
                     </p>
                     <p className="text-xs text-[var(--muted)] mt-0.5">
-                      {inst._count.accounts}{" "}
-                      {inst._count.accounts === 1 ? "compte" : "comptes"}
+                      {inst._count.accounts === 1
+                        ? t("settings.institutions.accounts", { count: inst._count.accounts })
+                        : t("settings.institutions.accountsPlural", { count: inst._count.accounts })}
                       {inst.gocardlessInstitutionId && (
-                        <span className="ml-2 text-[var(--accent)]">· Open Banking</span>
+                        <span className="ml-2 text-[var(--accent)]">· {t("settings.institutions.openBanking")}</span>
                       )}
                     </p>
                   </div>
@@ -99,7 +98,7 @@ export default async function SettingsPage() {
                         : <ConnectOpenBankingButton institutionId={inst.id} />
                       : <ConnectOpenBankingDialog institutionId={inst.id} institutionName={inst.name} />
                   )}
-                  {/* Woob sync — masqué pour les institutions gérées par des scripts dédiés */}
+                  {/* Woob sync */}
                   {(() => {
                     if (DEDICATED_SYNC_INSTITUTIONS.includes(inst.name.toLowerCase())) return null;
 
@@ -114,8 +113,6 @@ export default async function SettingsPage() {
                           }`}>
                             {woobLog.status === "success"
                               ? <CheckCircle size={12} />
-                              : woobLog.status === "auth_required"
-                              ? <AlertTriangle size={12} />
                               : <AlertTriangle size={12} />}
                           </span>
                         )}
@@ -132,8 +129,8 @@ export default async function SettingsPage() {
                     );
                   })()}
                   <DeleteButton
-                    label="Supprimer"
-                    description={`L'institution « ${inst.name} » et tous ses comptes associés seront définitivement supprimés.`}
+                    label={t("common.delete")}
+                    description={t("deleteInstitution.description", { name: inst.name })}
                     onDelete={async () => {
                       "use server";
                       await deleteInstitution(inst.id);
@@ -146,19 +143,17 @@ export default async function SettingsPage() {
         )}
       </section>
 
-      {/* Profil financier */}
+      {/* Financial profile */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Profil financier</h2>
-          <p className="text-xs text-[var(--muted)] mt-0.5">
-            Utilisé pour calculer votre taux d&apos;épargne, runway et revenus passifs
-          </p>
+          <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.profile.title")}</h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.profile.subtitle")}</p>
         </div>
         <form action={updateUserSettings} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label htmlFor="salary" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Salaire net mensuel
+                {t("settings.profile.salary")}
               </label>
               <div className="relative">
                 <input
@@ -178,7 +173,7 @@ export default async function SettingsPage() {
             </div>
             <div className="space-y-1.5">
               <label htmlFor="expenses" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Dépenses incompressibles / mois
+                {t("settings.profile.expenses")}
               </label>
               <div className="relative">
                 <input
@@ -198,7 +193,7 @@ export default async function SettingsPage() {
             </div>
             <div className="space-y-1.5">
               <label htmlFor="goal" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Objectif patrimoine
+                {t("settings.profile.goal")}
               </label>
               <div className="relative">
                 <input
@@ -220,7 +215,7 @@ export default async function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label htmlFor="saved" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Épargne mensuelle déclarée
+                {t("settings.profile.saved")}
               </label>
               <div className="relative">
                 <input
@@ -237,7 +232,7 @@ export default async function SettingsPage() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">€</span>
               </div>
-              <p className="text-xs text-[var(--muted)] opacity-70">Livrets + investissements — hors virements inter-comptes et perf marché</p>
+              <p className="text-xs text-[var(--muted)] opacity-70">{t("settings.profile.savedHint")}</p>
             </div>
           </div>
           <div className="flex justify-end">
@@ -246,19 +241,17 @@ export default async function SettingsPage() {
         </form>
       </section>
 
-      {/* Fiscalité */}
+      {/* Tax rates */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Fiscalité</h2>
-          <p className="text-xs text-[var(--muted)] mt-0.5">
-            Taux d&apos;imposition sur les plus-values latentes — utilisé pour calculer le patrimoine net
-          </p>
+          <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.tax.title")}</h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.tax.subtitle")}</p>
         </div>
         <form action={updateUserSettings} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label htmlFor="taxRatePea" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                PEA
+                {t("settings.tax.pea")}
               </label>
               <div className="relative">
                 <input
@@ -276,11 +269,11 @@ export default async function SettingsPage() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
               </div>
-              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 17,2 %</p>
+              <p className="text-xs text-[var(--muted)] opacity-70">{t("settings.tax.peaHint")}</p>
             </div>
             <div className="space-y-1.5">
               <label htmlFor="taxRateCto" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                CTO
+                {t("settings.tax.cto")}
               </label>
               <div className="relative">
                 <input
@@ -298,11 +291,11 @@ export default async function SettingsPage() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
               </div>
-              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 31,4 % (PFU)</p>
+              <p className="text-xs text-[var(--muted)] opacity-70">{t("settings.tax.ctoHint")}</p>
             </div>
             <div className="space-y-1.5">
               <label htmlFor="taxRateCrypto" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Crypto
+                {t("settings.tax.crypto")}
               </label>
               <div className="relative">
                 <input
@@ -320,7 +313,7 @@ export default async function SettingsPage() {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">%</span>
               </div>
-              <p className="text-xs text-[var(--muted)] opacity-70">Défaut FR : 31,4 % (PFU)</p>
+              <p className="text-xs text-[var(--muted)] opacity-70">{t("settings.tax.cryptoHint")}</p>
             </div>
           </div>
           <div className="flex justify-end">
@@ -329,13 +322,11 @@ export default async function SettingsPage() {
         </form>
       </section>
 
-      {/* Sync automatique */}
+      {/* Auto-sync */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Synchronisation automatique</h2>
-          <p className="text-xs text-[var(--muted)] mt-0.5">
-            Sync toutes les 4h · TR keepalive toutes les 2h
-          </p>
+          <h2 className="text-base font-semibold text-[var(--foreground)]">{t("settings.sync.title")}</h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{t("settings.sync.subtitle")}</p>
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl px-5 divide-y divide-[var(--border)]">
           <SyncStatus
@@ -350,7 +341,9 @@ export default async function SettingsPage() {
           />
         </div>
         <p className="text-xs text-[var(--muted)]">
-          LCL → première connexion : <code className="text-[var(--foreground)]">docker exec -it finalibaba-sync-1 python setup_lcl.py</code>
+          {t.rich("settings.sync.lclHint", {
+            code: (chunks) => <code className="text-[var(--foreground)]">{chunks}</code>,
+          })}
         </p>
       </section>
 

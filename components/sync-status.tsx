@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { RefreshCw, CheckCircle, AlertTriangle, Clock, LogIn } from "lucide-react";
 import { triggerSync, startTRSetup, completeTRSetup, startLCLSetup, completeLCLSetup } from "@/lib/actions/sync";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 
 interface SyncLog {
   status: string;
@@ -23,13 +24,14 @@ function StatusIcon({ status }: { status: string }) {
   return <AlertTriangle size={14} className="text-[var(--negative)]" aria-hidden="true" />;
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, locale: string): string {
   const diff = Date.now() - new Date(date).getTime();
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  if (h > 0) return `il y a ${h}h`;
-  if (m > 0) return `il y a ${m}min`;
-  return "à l'instant";
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (h > 0) return rtf.format(-h, "hour");
+  if (m > 0) return rtf.format(-m, "minute");
+  return rtf.format(0, "second");
 }
 
 type SetupStep =
@@ -46,6 +48,9 @@ export function SyncStatus({ source, label, log }: Props) {
   const [code, setCode] = useState("");
   const [setupError, setSetupError] = useState<string | null>(null);
   const router = useRouter();
+  const t = useTranslations("syncStatus");
+  const tc = useTranslations("common");
+  const locale = useLocale();
 
   const isAuthRequired = log?.status === "auth_required";
   const inSetupFlow = setupStep !== "idle";
@@ -68,7 +73,7 @@ export function SyncStatus({ source, label, log }: Props) {
       await startTRSetup();
       setSetupStep("awaiting_code");
     } catch (e) {
-      setSetupError(e instanceof Error ? e.message : "Erreur inconnue");
+      setSetupError(e instanceof Error ? e.message : t("unknownError"));
       setSetupStep("idle");
     }
   };
@@ -83,7 +88,7 @@ export function SyncStatus({ source, label, log }: Props) {
       setSetupStep("idle");
       handleSync();
     } catch (e) {
-      setSetupError(e instanceof Error ? e.message : "Erreur inconnue");
+      setSetupError(e instanceof Error ? e.message : t("unknownError"));
       setSetupStep("awaiting_code");
     }
   };
@@ -102,7 +107,7 @@ export function SyncStatus({ source, label, log }: Props) {
         setSetupStep("awaiting_approval");
       }
     } catch (e) {
-      setSetupError(e instanceof Error ? e.message : "Erreur inconnue");
+      setSetupError(e instanceof Error ? e.message : t("unknownError"));
       setSetupStep("idle");
     }
   };
@@ -115,7 +120,7 @@ export function SyncStatus({ source, label, log }: Props) {
       setSetupStep("idle");
       handleSync();
     } catch (e) {
-      setSetupError(e instanceof Error ? e.message : "Erreur inconnue");
+      setSetupError(e instanceof Error ? e.message : t("unknownError"));
       setSetupStep("awaiting_approval");
     }
   };
@@ -131,15 +136,15 @@ export function SyncStatus({ source, label, log }: Props) {
             {log ? (
               <p className="text-xs text-[var(--muted)]">
                 {log.status === "auth_required" ? (
-                  <span className="text-amber-400">Re-authentification requise</span>
+                  <span className="text-amber-400">{t("reAuthRequired")}</span>
                 ) : log.status === "success" ? (
-                  <span>{timeAgo(log.createdAt)}</span>
+                  <span>{timeAgo(log.createdAt, locale)}</span>
                 ) : (
-                  <span className="text-[var(--negative)]">{log.message ?? "Erreur"}</span>
+                  <span className="text-[var(--negative)]">{log.message ?? t("error")}</span>
                 )}
               </p>
             ) : (
-              <p className="text-xs text-[var(--muted)]">Jamais synchronisé</p>
+              <p className="text-xs text-[var(--muted)]">{t("neverSynced")}</p>
             )}
           </div>
         </div>
@@ -151,13 +156,13 @@ export function SyncStatus({ source, label, log }: Props) {
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
             >
               <LogIn size={12} aria-hidden="true" />
-              Connecter
+              {t("connect")}
             </button>
           )}
           {setupStep === "starting" && (
             <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
               <RefreshCw size={12} className="animate-spin" aria-hidden="true" />
-              Connexion… (10-30s)
+              {t("connecting")}
             </span>
           )}
           {!inSetupFlow && (
@@ -167,7 +172,7 @@ export function SyncStatus({ source, label, log }: Props) {
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
             >
               <RefreshCw size={12} className={pending ? "animate-spin" : ""} aria-hidden="true" />
-              {pending ? "Sync en cours…" : "Synchroniser"}
+              {pending ? t("syncing") : t("synchronize")}
             </button>
           )}
         </div>
@@ -176,9 +181,7 @@ export function SyncStatus({ source, label, log }: Props) {
       {/* TR — code input */}
       {(setupStep === "awaiting_code" || setupStep === "submitting") && (
         <div className="mt-3 ml-[26px] p-3 rounded-lg bg-[var(--surface-elevated)] border border-amber-400/20">
-          <p className="text-xs text-[var(--muted)] mb-2">
-            Ouvre l&apos;app Trade Republic → entre le code à 4 chiffres affiché :
-          </p>
+          <p className="text-xs text-[var(--muted)] mb-2">{t("trCodeHint")}</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -189,7 +192,7 @@ export function SyncStatus({ source, label, log }: Props) {
               onKeyDown={(e) => e.key === "Enter" && handleCompleteTRSetup()}
               placeholder="1234"
               disabled={setupStep === "submitting"}
-              aria-label="Code à 4 chiffres"
+              aria-label={t("trCodeAriaLabel")}
               className="w-20 text-center text-lg font-mono tracking-[0.4em] px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] disabled:opacity-50"
             />
             <button
@@ -198,13 +201,13 @@ export function SyncStatus({ source, label, log }: Props) {
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
             >
               {setupStep === "submitting" ? (
-                <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> Validation…</>
+                <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> {t("validating")}</>
               ) : (
-                "Confirmer"
+                t("confirm")
               )}
             </button>
             <button onClick={reset} className="min-h-[44px] px-2 text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:underline">
-              Annuler
+              {tc("cancel")}
             </button>
           </div>
           {setupError && <p role="alert" className="mt-2 text-xs text-[var(--negative)]">{setupError}</p>}
@@ -215,7 +218,9 @@ export function SyncStatus({ source, label, log }: Props) {
       {(setupStep === "awaiting_approval" || setupStep === "completing") && (
         <div className="mt-3 ml-[26px] p-3 rounded-lg bg-[var(--surface-elevated)] border border-amber-400/20">
           <p className="text-xs text-[var(--muted)] mb-3">
-            Ouvre l&apos;app <strong className="text-[var(--foreground)]">LCL</strong> → <strong className="text-[var(--foreground)]">Certicode Plus</strong> → approuve la connexion, puis clique ci-dessous :
+            {t.rich("lclApprovalHint", {
+              strong: (chunks) => <strong className="text-[var(--foreground)]">{chunks}</strong>,
+            })}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -224,13 +229,13 @@ export function SyncStatus({ source, label, log }: Props) {
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-elevated)]"
             >
               {setupStep === "completing" ? (
-                <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> Validation…</>
+                <><RefreshCw size={12} className="animate-spin" aria-hidden="true" /> {t("validating")}</>
               ) : (
-                "J'ai approuvé dans l'app LCL"
+                t("lclConfirm")
               )}
             </button>
             <button onClick={reset} className="min-h-[44px] px-2 text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:underline">
-              Annuler
+              {tc("cancel")}
             </button>
           </div>
           {setupError && <p role="alert" className="mt-2 text-xs text-[var(--negative)]">{setupError}</p>}

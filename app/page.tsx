@@ -10,6 +10,7 @@ import Link from "next/link";
 import Decimal from "decimal.js";
 import { calcCurrentCapital, hasLoanParams } from "@/lib/loan";
 import { getInstitutionLogoUrl } from "@/lib/institutions";
+import { getTranslations } from "next-intl/server";
 
 async function getDashboardData() {
   const [accounts, settings] = await Promise.all([
@@ -34,12 +35,12 @@ async function getDashboardData() {
   let totalLatentTax = BigInt(0);
 
   const allocation: Record<string, bigint> = {
-    Liquidités: BigInt(0),
-    Épargne: BigInt(0),
-    Investissements: BigInt(0),
-    Crypto: BigInt(0),
-    Immobilier: BigInt(0),
-    Automobile: BigInt(0),
+    cash: BigInt(0),
+    savings: BigInt(0),
+    investments: BigInt(0),
+    crypto: BigInt(0),
+    realEstate: BigInt(0),
+    auto: BigInt(0),
   };
 
   const now = new Date();
@@ -48,7 +49,7 @@ async function getDashboardData() {
   const instMap = new Map<
     string,
     {
-      name: string;
+      name: string | null;
       logoUrl: string | null;
       total: bigint;
       accounts: Array<{ id: string; name: string; value: bigint; type: string }>;
@@ -63,7 +64,7 @@ async function getDashboardData() {
       const liability = account.liabilityCents ?? BigInt(0);
       totalLiabilities += liability;
       const equity = value - liability > BigInt(0) ? value - liability : BigInt(0);
-      allocation[account.type === "AUTOMOBILE" ? "Automobile" : "Immobilier"] += equity;
+      allocation[account.type === "AUTOMOBILE" ? "auto" : "realEstate"] += equity;
       grossAssets += value;
     } else if (account.type === "INVESTMENT" || account.type === "CRYPTO") {
       let accountGain = BigInt(0);
@@ -95,7 +96,7 @@ async function getDashboardData() {
           totalLatentTax += BigInt(Math.round(Number(accountGain) * taxRate));
         }
       }
-      allocation[account.type === "CRYPTO" ? "Crypto" : "Investissements"] += value;
+      allocation[account.type === "CRYPTO" ? "crypto" : "investments"] += value;
       grossAssets += value;
     } else if (account.type === "LOAN") {
       // Loan: pure liability — no asset counterpart
@@ -115,17 +116,17 @@ async function getDashboardData() {
       value = -loanBalance; // displayed as negative in the account list
     } else {
       value = account.history[0]?.balanceCents ?? BigInt(0);
-      if (account.type === "SAVINGS") allocation["Épargne"] += value;
-      else allocation["Liquidités"] += value;
+      if (account.type === "SAVINGS") allocation["savings"] += value;
+      else allocation["cash"] += value;
       grossAssets += value;
     }
 
     const instId = account.institutionId ?? "__personal__";
     if (!instMap.has(instId)) {
-      const instName = account.institution?.name ?? "Personnel";
+      const instName = account.institution?.name ?? null;
       instMap.set(instId, {
         name: instName,
-        logoUrl: account.institution
+        logoUrl: account.institution && instName
           ? (account.institution.logoUrl ?? getInstitutionLogoUrl(instName))
           : null,
         total: BigInt(0),
@@ -200,35 +201,44 @@ async function getDashboardData() {
     delta30 = { amount, percent };
   }
 
-  const allocationSlices: AllocationSlice[] = [
-    { name: "Liquidités", value: Number(allocation["Liquidités"]), color: "#6366f1" },
-    { name: "Épargne", value: Number(allocation["Épargne"]), color: "#8b5cf6" },
-    { name: "Investissements", value: Number(allocation["Investissements"]), color: "#22c55e" },
-    { name: "Crypto", value: Number(allocation["Crypto"]), color: "#f59e0b" },
-    { name: "Immobilier", value: Number(allocation["Immobilier"]), color: "#3b82f6" },
-    { name: "Automobile", value: Number(allocation["Automobile"]), color: "#ec4899" },
-  ];
+  const allocationRaw = {
+    cash: Number(allocation["cash"]),
+    savings: Number(allocation["savings"]),
+    investments: Number(allocation["investments"]),
+    crypto: Number(allocation["crypto"]),
+    realEstate: Number(allocation["realEstate"]),
+    auto: Number(allocation["auto"]),
+  };
 
-  return { netWorth, grossAssets, totalPassif, totalLiabilities, totalLatentTax, history, allocationSlices, institutions, delta30 };
+  return { netWorth, grossAssets, totalPassif, totalLiabilities, totalLatentTax, history, allocationRaw, institutions, delta30 };
 }
 
 export default async function DashboardPage() {
-  const { netWorth, grossAssets, totalPassif, totalLiabilities, totalLatentTax, history, allocationSlices, institutions, delta30 } =
-    await getDashboardData();
+  const [{ netWorth, grossAssets, totalPassif, totalLiabilities, totalLatentTax, history, allocationRaw, institutions, delta30 }, t] =
+    await Promise.all([getDashboardData(), getTranslations()]);
 
   const hasData = grossAssets > BigInt(0);
+
+  const allocationSlices: AllocationSlice[] = [
+    { name: t("allocation.cash"), value: allocationRaw.cash, color: "#6366f1" },
+    { name: t("allocation.savings"), value: allocationRaw.savings, color: "#8b5cf6" },
+    { name: t("allocation.investments"), value: allocationRaw.investments, color: "#22c55e" },
+    { name: t("allocation.crypto"), value: allocationRaw.crypto, color: "#f59e0b" },
+    { name: t("allocation.realEstate"), value: allocationRaw.realEstate, color: "#3b82f6" },
+    { name: t("allocation.auto"), value: allocationRaw.auto, color: "#ec4899" },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       <AutoSync />
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">Dashboard</h1>
-        <p className="text-sm text-[var(--muted)] mt-1">Vue d&apos;ensemble de votre patrimoine</p>
+        <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("dashboard.title")}</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Hero KPI */}
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 sm:p-8">
-        <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">Patrimoine Net</p>
+        <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">{t("dashboard.netWorth")}</p>
         <p className="text-4xl sm:text-5xl font-bold tabular-nums text-[var(--accent)] break-all leading-none">
           {formatCurrency(netWorth, 0)}
         </p>
@@ -247,28 +257,28 @@ export default async function DashboardPage() {
                 </span>
               )}
             </span>
-            <span className="text-xs text-[var(--muted)]">sur 30 jours</span>
+            <span className="text-xs text-[var(--muted)]">{t("dashboard.last30d")}</span>
           </div>
         )}
         <div className="mt-5 pt-5 border-t border-[var(--border)] grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-1">Brut</p>
+            <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-1">{t("dashboard.gross")}</p>
             <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
               {formatCurrency(grossAssets, 0)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-1">Passif</p>
+            <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-1">{t("dashboard.liabilities")}</p>
             <p className="text-lg font-semibold tabular-nums text-[var(--negative)]">
               {formatCurrency(totalPassif, 0)}
             </p>
             {totalPassif > BigInt(0) && (
               <div className="mt-0.5 space-y-0.5">
                 {totalLiabilities > BigInt(0) && (
-                  <p className="text-xs text-[var(--muted)]">Dettes {formatCurrency(totalLiabilities, 0)}</p>
+                  <p className="text-xs text-[var(--muted)]">{t("dashboard.debts")} {formatCurrency(totalLiabilities, 0)}</p>
                 )}
                 {totalLatentTax > BigInt(0) && (
-                  <p className="text-xs text-[var(--muted)]">Fiscalité latente {formatCurrency(totalLatentTax, 0)}</p>
+                  <p className="text-xs text-[var(--muted)]">{t("dashboard.latentTax")} {formatCurrency(totalLatentTax, 0)}</p>
                 )}
               </div>
             )}
@@ -281,13 +291,13 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-              Évolution du patrimoine
+              {t("dashboard.netWorthChart")}
             </h2>
             <NetWorthChart data={history} />
           </div>
           <div className="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-              Répartition des actifs
+              {t("dashboard.allocationChart")}
             </h2>
             <AssetAllocationChart data={allocationSlices} />
           </div>
@@ -298,15 +308,15 @@ export default async function DashboardPage() {
       {hasData ? (
         <div className="space-y-3">
           <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-            Mes comptes
+            {t("dashboard.myAccounts")}
           </h2>
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl divide-y divide-[var(--border)]">
             {institutions.map((inst) => (
-              <div key={inst.name} className="px-6 py-4">
+              <div key={inst.name ?? "__personal__"} className="px-6 py-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2.5">
-                    <InstitutionLogo name={inst.name} logoUrl={inst.logoUrl} size={28} />
-                    <p className="text-sm font-semibold text-[var(--foreground)]">{inst.name}</p>
+                    <InstitutionLogo name={inst.name ?? t("common.personal")} logoUrl={inst.logoUrl} size={28} />
+                    <p className="text-sm font-semibold text-[var(--foreground)]">{inst.name ?? t("common.personal")}</p>
                   </div>
                   <p className="text-sm font-semibold tabular-nums text-[var(--foreground)]">
                     {formatCurrency(inst.total, 0)}
@@ -335,15 +345,14 @@ export default async function DashboardPage() {
       ) : (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center">
           <p className="text-sm text-[var(--muted)]">
-            Commencez par ajouter vos institutions dans{" "}
-            <Link href="/settings" className="text-[var(--accent)] underline underline-offset-2">
-              Paramètres
-            </Link>
-            , puis vos comptes dans{" "}
-            <Link href="/accounts" className="text-[var(--accent)] underline underline-offset-2">
-              Comptes
-            </Link>
-            .
+            {t.rich("dashboard.emptyState", {
+              settings: (chunks) => (
+                <Link href="/settings" className="text-[var(--accent)] underline underline-offset-2">{chunks}</Link>
+              ),
+              accounts: (chunks) => (
+                <Link href="/accounts" className="text-[var(--accent)] underline underline-offset-2">{chunks}</Link>
+              ),
+            })}
           </p>
         </div>
       )}

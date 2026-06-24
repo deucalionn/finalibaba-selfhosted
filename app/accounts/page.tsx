@@ -22,25 +22,9 @@ import {
 } from "@/components/export-accounts-button";
 import Decimal from "decimal.js";
 import { calcLoanStats, hasLoanParams } from "@/lib/loan";
+import { getTranslations } from "next-intl/server";
 
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Courant",
-  SAVINGS: "Épargne",
-  MEAL_VOUCHER: "Titre-resto",
-  INVESTMENT: "Investissements",
-  CRYPTO: "Crypto",
-  AUTOMOBILE: "Automobile",
-};
-
-const TABS = [
-  { id: "liquidites", label: "Liquidités", labelShort: "Liquidités" },
-  { id: "investissements", label: "Investissements", labelShort: "Invest." },
-  { id: "immobilier", label: "Immobilier", labelShort: "Immo." },
-  { id: "automobiles", label: "Automobiles", labelShort: "Auto." },
-  { id: "credits", label: "Crédits", labelShort: "Crédits" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+type TabId = "liquidites" | "investissements" | "immobilier" | "automobiles" | "credits";
 
 function taxRate(type: string, subtype: string | null, rates: { PEA: number; CTO: number; CRYPTO: number }): number | null {
   if (type === "CRYPTO") return rates.CRYPTO;
@@ -62,8 +46,22 @@ export default async function AccountsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  const [t, ta, td] = await Promise.all([
+    getTranslations("accounts"),
+    getTranslations("accountTypes"),
+    getTranslations("accountDetail"),
+  ]);
+
+  const TABS = [
+    { id: "liquidites" as const, label: t("tabs.cash"), labelShort: t("tabs.cashShort") },
+    { id: "investissements" as const, label: t("tabs.investments"), labelShort: t("tabs.investmentsShort") },
+    { id: "immobilier" as const, label: t("tabs.realEstate"), labelShort: t("tabs.realEstateShort") },
+    { id: "automobiles" as const, label: t("tabs.autos"), labelShort: t("tabs.autosShort") },
+    { id: "credits" as const, label: t("tabs.loans"), labelShort: t("tabs.loansShort") },
+  ];
+
   const { tab: rawTab = "liquidites" } = await searchParams;
-  const tab = (TABS.some((t) => t.id === rawTab) ? rawTab : "liquidites") as TabId;
+  const tab = (TABS.some((tb) => tb.id === rawTab) ? rawTab : "liquidites") as TabId;
 
   const [fiatAccounts, investAccounts, realEstateAccounts, automobileAccounts, loanAccounts, institutions, userSettings] =
     await Promise.all([
@@ -269,7 +267,7 @@ export default async function AccountsPage({
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--foreground)]">Comptes</h1>
+        <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("title")}</h1>
         <div className="flex items-center gap-2">
           <ExportAccountsButton
             fiatAccounts={fiatExport}
@@ -307,7 +305,7 @@ export default async function AccountsPage({
         <div className="space-y-3">
           {fiatAccounts.length === 0 ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--muted)]">
-              Aucun compte — ajoutez-en avec le bouton ci-dessus.
+              {t("noAccount")}
             </div>
           ) : (
             fiatAccounts.map((account) => {
@@ -336,7 +334,7 @@ export default async function AccountsPage({
                           />
                         )}
                         <p className="text-xs text-[var(--muted)]">
-                          {account.institution?.name && `${account.institution.name} · `}{TYPE_LABELS[account.type] ?? account.type}
+                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}
                         </p>
                       </div>
                       <p className="font-medium text-[var(--foreground)] truncate">{account.name}</p>
@@ -372,7 +370,7 @@ export default async function AccountsPage({
         <div className="space-y-6">
           {investAccounts.length === 0 ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--muted)]">
-              Aucun compte — ajoutez-en avec le bouton ci-dessus.
+              {t("noAccount")}
             </div>
           ) : (
             investAccounts.map((account) => {
@@ -411,7 +409,7 @@ export default async function AccountsPage({
                           />
                         )}
                         <p className="text-xs text-[var(--muted)] truncate">
-                          {account.institution?.name && `${account.institution.name} · `}{TYPE_LABELS[account.type] ?? account.type}
+                          {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}
                           {account.investmentSubtype && ` · ${account.investmentSubtype}`}
                         </p>
                       </div>
@@ -425,7 +423,7 @@ export default async function AccountsPage({
                         <p className={`text-xs tabular-nums ${accountGain >= BigInt(0) ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                           {accountGain >= BigInt(0) ? "+" : ""}{formatCurrency(accountGain, 0)}
                           {accountTax > BigInt(0) && (
-                            <span className="text-[var(--muted)] hidden sm:inline"> · -{formatCurrency(accountTax, 0)} impôts</span>
+                            <span className="text-[var(--muted)] hidden sm:inline"> · -{formatCurrency(accountTax, 0)} {t("taxes")}</span>
                           )}
                         </p>
                       )}
@@ -434,20 +432,20 @@ export default async function AccountsPage({
 
                   {account.holdings.length === 0 ? (
                     <div className="px-6 py-8 text-center text-sm text-[var(--muted)]">
-                      Aucune position.
+                      {t("noHoldings")}
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-[var(--border)]">
-                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Actif</th>
-                          <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Quantité</th>
-                          <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Prix</th>
-                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.asset")}</th>
+                          <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.qty")}</th>
+                          <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.price")}</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.value")}</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.gain")}</th>
                           {rate !== null && (
-                            <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Impôt latent</th>
+                            <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.tax")}</th>
                           )}
                         </tr>
                       </thead>
@@ -546,7 +544,7 @@ export default async function AccountsPage({
           </div>
           {realEstateAccounts.length === 0 ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--muted)]">
-              Aucun bien immobilier — utilisez le bouton ci-dessus pour en ajouter un.
+              {t("noRealEstate")}
             </div>
           ) : (
             realEstateAccounts.map((p) => {
@@ -590,19 +588,19 @@ export default async function AccountsPage({
 
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 text-sm">
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Valeur estimée</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("realEstate.value")}</p>
                       <p className="tabular-nums font-medium text-[var(--foreground)]">
                         {formatCurrency(value, 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Capital restant dû</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("realEstate.remaining")}</p>
                       <p className="tabular-nums font-medium text-[var(--negative)]">
                         {formatCurrency(liability, 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Fonds propres</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("realEstate.equity")}</p>
                       <p className="tabular-nums font-medium text-[var(--positive)]">
                         {formatCurrency(equity, 0)}
                       </p>
@@ -644,7 +642,7 @@ export default async function AccountsPage({
           </div>
           {loanAccounts.length === 0 ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--muted)]">
-              Aucun crédit — utilisez le bouton ci-dessus pour en ajouter un.
+              {t("noLoan")}
             </div>
           ) : (
             loanAccounts.map((loan) => {
@@ -653,7 +651,7 @@ export default async function AccountsPage({
                   <div key={loan.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-[var(--foreground)]">{loan.name}</p>
-                      <p className="text-xs text-[var(--muted)] mt-1">Paramètres incomplets.</p>
+                      <p className="text-xs text-[var(--muted)] mt-1">{t("loan.incompleteParams")}</p>
                     </div>
                     <DeleteAccountButton id={loan.id} name={loan.name} backHref="/accounts?tab=credits" />
                   </div>
@@ -694,8 +692,8 @@ export default async function AccountsPage({
                       )}
                       <p className="font-medium text-[var(--foreground)]">{loan.name}</p>
                       <p className="text-xs text-[var(--muted)] mt-0.5">
-                        TAEG {loan.loanTaeg.toFixed(2)}% · {loan.loanDurationMonths} mois
-                        {(loan.loanDeferralMonths ?? 0) > 0 && ` · différé ${loan.loanDeferralMonths} mois`}
+                        {td("loanDetail.taeg")} {loan.loanTaeg.toFixed(2)}% · {loan.loanDurationMonths} mois
+                        {(loan.loanDeferralMonths ?? 0) > 0 && ` · ${t("loan.deferred", { months: loan.loanDeferralMonths! })}`}
                       </p>
                     </div>
                     <div className="relative z-10 flex items-center gap-3">
@@ -703,7 +701,7 @@ export default async function AccountsPage({
                         <p className="text-lg font-semibold tabular-nums text-[var(--negative)]">
                           {formatCurrency(stats.currentCapitalCents, 0)}
                         </p>
-                        <p className="text-xs text-[var(--muted)]">capital restant dû</p>
+                        <p className="text-xs text-[var(--muted)]">{t("loan.remaining")}</p>
                       </div>
                       <DeleteAccountButton
                         id={loan.id}
@@ -715,28 +713,28 @@ export default async function AccountsPage({
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-sm">
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Montant emprunté</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("loan.amountBorrowed")}</p>
                       <p className="tabular-nums font-medium text-[var(--foreground)]">
                         {formatCurrency(loan.loanAmountCents, 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Mensualité actuelle</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("loan.currentPayment")}</p>
                       <p className="tabular-nums font-medium text-[var(--foreground)]">
                         {formatCurrency(stats.currentMonthlyTotalCents)}
                         {(loan.insuranceMonthlyCents ?? BigInt(0)) > BigInt(0) && (
-                          <span className="text-xs text-[var(--muted)] font-normal"> (ass. incl.)</span>
+                          <span className="text-xs text-[var(--muted)] font-normal"> ({t("loan.insuranceIncl")})</span>
                         )}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Coût total crédit</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("loan.totalCost")}</p>
                       <p className="tabular-nums font-medium text-[var(--negative)]">
                         {formatCurrency(stats.totalCostCents, 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Fin prévue</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("loan.projectedEnd")}</p>
                       <p className="tabular-nums font-medium text-[var(--foreground)]">
                         {new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(stats.endDate)}
                       </p>
@@ -745,7 +743,7 @@ export default async function AccountsPage({
 
                   <div>
                     <div className="flex justify-between text-xs text-[var(--muted)] mb-1.5">
-                      <span>Remboursement</span>
+                      <span>{t("loan.repaymentProgress")}</span>
                       <span>{stats.progressPct}%</span>
                     </div>
                     <div className="h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden">
@@ -771,7 +769,7 @@ export default async function AccountsPage({
 
           {automobileAccounts.length === 0 ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--muted)]">
-              Aucun véhicule — utilisez le bouton ci-dessus pour en ajouter un.
+              {t("noVehicle")}
             </div>
           ) : (
             automobileAccounts.map((a) => {
@@ -823,14 +821,14 @@ export default async function AccountsPage({
                   <div className={`grid gap-2 sm:gap-4 text-sm ${purchasePrice > BigInt(0) ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
                     {purchasePrice > BigInt(0) && (
                       <div>
-                        <p className="text-[var(--muted)] text-xs mb-1">Prix d&apos;achat</p>
+                        <p className="text-[var(--muted)] text-xs mb-1">{t("auto.purchasePrice")}</p>
                         <p className="tabular-nums font-medium text-[var(--foreground)]">
                           {formatCurrency(purchasePrice, 0)}
                         </p>
                       </div>
                     )}
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Valeur actuelle</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("auto.value")}</p>
                       <p className="tabular-nums font-medium text-[var(--foreground)]">
                         {formatCurrency(value, 0)}
                       </p>
@@ -846,13 +844,13 @@ export default async function AccountsPage({
                       )}
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Crédit restant dû</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("auto.loanDue")}</p>
                       <p className={`tabular-nums font-medium ${liability > BigInt(0) ? "text-[var(--negative)]" : "text-[var(--muted)]"}`}>
                         {liability > BigInt(0) ? formatCurrency(liability, 0) : "—"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[var(--muted)] text-xs mb-1">Valeur nette</p>
+                      <p className="text-[var(--muted)] text-xs mb-1">{t("auto.netValue")}</p>
                       <p className="tabular-nums font-medium text-[var(--positive)]">
                         {formatCurrency(equity, 0)}
                       </p>
@@ -862,7 +860,7 @@ export default async function AccountsPage({
                   {liability > BigInt(0) && (
                     <div>
                       <div className="flex justify-between text-xs text-[var(--muted)] mb-1.5">
-                        <span>Financement</span>
+                        <span>{t("auto.financing")}</span>
                         <span>{financement}%</span>
                       </div>
                       <div className="h-1.5 bg-[var(--surface-elevated)] rounded-full overflow-hidden">

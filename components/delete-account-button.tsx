@@ -6,6 +6,7 @@ import { Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { deleteAccount } from "@/lib/actions/accounts";
+import { useTranslations } from "next-intl";
 
 export function DeleteAccountButton({
   id,
@@ -19,6 +20,7 @@ export function DeleteAccountButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations();
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -32,11 +34,11 @@ export function DeleteAccountButton({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Supprimer ce compte ?"
+      title={t("deleteAccount.title")}
       trigger={
         <Button variant="destructive" size="sm">
           <Trash2 size={12} aria-hidden="true" />
-          Supprimer
+          {t("common.delete")}
         </Button>
       }
     >
@@ -44,16 +46,16 @@ export function DeleteAccountButton({
         <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--negative)]/10 border border-[var(--negative)]/20">
           <AlertTriangle size={16} className="text-[var(--negative)] shrink-0 mt-0.5" aria-hidden="true" />
           <p className="text-sm text-[var(--foreground)]">
-            Le compte <strong>&laquo;{name}&raquo;</strong> et tout son historique (soldes, transactions) seront définitivement supprimés.
+            {t("deleteAccount.description", { name })}
           </p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-            Annuler
+            {t("common.cancel")}
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={pending}>
             <Trash2 size={12} aria-hidden="true" />
-            {pending ? "Suppression…" : "Supprimer définitivement"}
+            {pending ? t("common.deleting") : t("common.deleteForever")}
           </Button>
         </div>
       </div>

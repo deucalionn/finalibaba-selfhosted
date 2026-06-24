@@ -4,10 +4,11 @@ import { useState, useTransition } from "react";
 import { Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 
 export function DeleteButton({
   onDelete,
-  label = "Supprimer",
+  label,
   description,
 }: {
   onDelete: () => Promise<void>;
@@ -16,6 +17,7 @@ export function DeleteButton({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("common");
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -28,11 +30,11 @@ export function DeleteButton({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Confirmer la suppression"
+      title={t("confirmDelete")}
       trigger={
         <Button variant="destructive" size="sm">
           <Trash2 size={12} aria-hidden="true" />
-          {label}
+          {label ?? t("delete")}
         </Button>
       }
     >
@@ -40,16 +42,16 @@ export function DeleteButton({
         <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--negative)]/10 border border-[var(--negative)]/20">
           <AlertTriangle size={16} className="text-[var(--negative)] shrink-0 mt-0.5" aria-hidden="true" />
           <p className="text-sm text-[var(--foreground)]">
-            {description ?? "Cette action est irréversible."}
+            {description ?? t("irreversible")}
           </p>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-            Annuler
+            {t("cancel")}
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={pending}>
             <Trash2 size={12} aria-hidden="true" />
-            {pending ? "Suppression…" : "Supprimer"}
+            {pending ? t("deleting") : t("delete")}
           </Button>
         </div>
       </div>

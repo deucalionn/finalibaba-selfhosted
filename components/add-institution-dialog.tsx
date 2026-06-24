@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createInstitution } from "@/lib/actions/institutions";
+import { useTranslations } from "next-intl";
 
 const WOOB_MODULES = [
   { module: "lcl", label: "LCL" },
@@ -34,6 +35,8 @@ export function AddInstitutionDialog() {
   const [pending, startTransition] = useTransition();
   const [selectedModule, setSelectedModule] = useState("");
   const [customName, setCustomName] = useState("");
+  const t = useTranslations("addInstitution");
+  const tc = useTranslations("common");
 
   const knownBank = WOOB_MODULES.find((m) => m.module === selectedModule);
   const isCustom = selectedModule === "__other__";
@@ -60,19 +63,18 @@ export function AddInstitutionDialog() {
     <Dialog
       open={open}
       onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}
-      title="Ajouter une institution"
+      title={t("title")}
       trigger={
         <Button>
           <Plus size={14} aria-hidden="true" />
-          Nouvelle institution
+          {t("trigger")}
         </Button>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Bank selector */}
         <div className="space-y-1.5">
           <label htmlFor="inst-bank" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-            Banque
+            {t("bank")}
           </label>
           <select
             id="inst-bank"
@@ -81,24 +83,22 @@ export function AddInstitutionDialog() {
             className={`${inputClass} cursor-pointer`}
             required
           >
-            <option value="">Sélectionner…</option>
+            <option value="">{t("select")}</option>
             {WOOB_MODULES.map((m) => (
               <option key={m.module} value={m.module}>{m.label}</option>
             ))}
-            <option value="__other__">Autre</option>
+            <option value="__other__">{t("other")}</option>
           </select>
         </div>
 
-        {/* Hidden name field for known banks */}
         {knownBank && (
           <input type="hidden" name="name" value={knownBank.label} />
         )}
 
-        {/* Custom name for "Autre" */}
         {isCustom && (
           <div className="space-y-1.5">
             <label htmlFor="inst-name" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Nom
+              {t("name")}
             </label>
             <input
               id="inst-name"
@@ -113,17 +113,14 @@ export function AddInstitutionDialog() {
           </div>
         )}
 
-        {/* Woob credentials — only for known modules */}
         {woobEnabled && (
           <>
             <input type="hidden" name="woobModule" value={selectedModule} />
             <div className="space-y-3 pt-1 border-t border-[var(--border)]">
-              <p className="text-xs text-[var(--muted)] pt-1">
-                Sync automatique via Woob — historique illimité stocké dans votre base.
-              </p>
+              <p className="text-xs text-[var(--muted)] pt-1">{t("woobHint")}</p>
               <div className="space-y-1.5">
                 <label htmlFor="inst-woob-login" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Identifiant / n° client
+                  {t("login")}
                 </label>
                 <input
                   id="inst-woob-login"
@@ -136,7 +133,7 @@ export function AddInstitutionDialog() {
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="inst-woob-password" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Mot de passe
+                  {t("password")}
                 </label>
                 <input
                   id="inst-woob-password"
@@ -154,10 +151,10 @@ export function AddInstitutionDialog() {
         {selectedModule && (
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => { reset(); setOpen(false); }}>
-              Annuler
+              {tc("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Création…" : "Ajouter"}
+              {pending ? t("creating") : t("submit")}
             </Button>
           </div>
         )}

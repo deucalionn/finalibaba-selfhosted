@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { useTranslations } from "next-intl";
 
 interface BalancePoint {
   date: string;
@@ -23,10 +24,12 @@ const fmt = (cents: number) =>
   }).format(cents / 100);
 
 export function BalanceHistoryChart({ data }: { data: BalancePoint[] }) {
+  const t = useTranslations("charts");
+
   if (data.length < 2) {
     return (
       <div className="h-[220px] flex items-center justify-center text-sm text-[var(--muted)]">
-        Pas encore assez de données
+        {t("notEnoughData")}
       </div>
     );
   }
@@ -37,7 +40,7 @@ export function BalanceHistoryChart({ data }: { data: BalancePoint[] }) {
   const pad = (max - min) * 0.15 || max * 0.05;
 
   return (
-    <div role="img" aria-label="Historique du solde">
+    <div role="img" aria-label={t("balanceAria")}>
     <ResponsiveContainer width="100%" height={220}>
       <AreaChart data={data} margin={{ top: 5, right: 4, bottom: 0, left: 8 }}>
         <defs>
@@ -70,7 +73,7 @@ export function BalanceHistoryChart({ data }: { data: BalancePoint[] }) {
             color: "var(--foreground)",
             fontSize: "13px",
           }}
-          formatter={(v) => [fmt(Number(v)), "Solde"]}
+          formatter={(v) => [fmt(Number(v)), t("balance")]}
           labelStyle={{ color: "var(--muted)", marginBottom: 4 }}
           cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
         />

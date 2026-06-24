@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Wallet, BarChart3, Settings, LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SidebarProps = { showLogout?: boolean };
-
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/accounts", label: "Comptes", icon: Wallet, exact: false },
-  { href: "/analytics", label: "Analytique", icon: BarChart3, exact: false },
-  { href: "/settings", label: "Paramètres", icon: Settings, exact: false },
-];
 
 export function Sidebar({ showLogout = false }: SidebarProps) {
   const rawPathname = usePathname();
   const pathname = rawPathname ?? "/";
+  const t = useTranslations("nav");
+
+  const navItems = [
+    { href: "/", label: t("dashboard"), icon: LayoutDashboard, exact: true },
+    { href: "/accounts", label: t("accounts"), icon: Wallet, exact: false },
+    { href: "/analytics", label: t("analytics"), icon: BarChart3, exact: false },
+    { href: "/settings", label: t("settings"), icon: Settings, exact: false },
+  ];
 
   return (
     <>
@@ -39,7 +41,7 @@ export function Sidebar({ showLogout = false }: SidebarProps) {
           </span>
         </div>
 
-        <nav aria-label="Navigation principale" className="flex flex-col gap-1 flex-1">
+        <nav aria-label={t("ariaMain")} className="flex flex-col gap-1 flex-1">
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
@@ -70,13 +72,13 @@ export function Sidebar({ showLogout = false }: SidebarProps) {
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--negative)] hover:bg-[var(--surface-elevated)] transition-colors w-full mt-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
           >
             <LogOut size={16} aria-hidden="true" />
-            Déconnexion
+            {t("logout")}
           </button>
         )}
       </aside>
 
       {/* ── Mobile bottom nav ── */}
-      <nav aria-label="Navigation mobile" className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex bg-[var(--surface)] border-t border-[var(--border)] pb-safe">
+      <nav aria-label={t("ariaMobile")} className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex bg-[var(--surface)] border-t border-[var(--border)] pb-safe">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (

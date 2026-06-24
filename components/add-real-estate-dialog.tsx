@@ -6,12 +6,15 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { createAccount } from "@/lib/actions/accounts";
+import { useTranslations } from "next-intl";
 
 type Institution = { id: string; name: string };
 
 export function AddRealEstateDialog({ institutions }: { institutions: Institution[] }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("addRealEstate");
+  const tc = useTranslations("common");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,11 +29,11 @@ export function AddRealEstateDialog({ institutions }: { institutions: Institutio
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Ajouter un bien immobilier"
+      title={t("title")}
       trigger={
         <Button>
           <Home size={14} aria-hidden="true" />
-          Ajouter un bien
+          {t("trigger")}
         </Button>
       }
     >
@@ -38,18 +41,18 @@ export function AddRealEstateDialog({ institutions }: { institutions: Institutio
         <input type="hidden" name="type" value="REAL_ESTATE" />
 
         <Select
-          label="Institution / Organisme"
+          label={t("institution")}
           name="institutionId"
           options={
             institutions.length
               ? institutions.map((i) => ({ value: i.id, label: i.name }))
-              : [{ value: "", label: "— Aucune institution —" }]
+              : [{ value: "", label: t("noInstitution") }]
           }
           disabled={!institutions.length}
         />
 
         <Input
-          label="Nom du bien"
+          label={t("name")}
           name="name"
           placeholder="Appartement Paris 11e, Résidence principale…"
           required
@@ -57,40 +60,36 @@ export function AddRealEstateDialog({ institutions }: { institutions: Institutio
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Valeur estimée (€)"
+            label={t("value")}
             name="initialBalance"
             type="number"
             step="0.01"
             min="0"
-            placeholder="250 000"
+            placeholder="250000"
           />
           <Input
-            label="Capital restant dû (€)"
+            label={t("liability")}
             name="liability"
             type="number"
             step="0.01"
             min="0"
-            placeholder="0 si sans crédit"
+            placeholder="0"
           />
         </div>
 
-        <p className="text-xs text-[var(--muted)]">
-          La valeur estimée est à mettre à jour manuellement (estimation marché, Meilleurs Agents…).
-        </p>
+        <p className="text-xs text-[var(--muted)]">{t("tip")}</p>
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Annuler
+            {tc("cancel")}
           </Button>
           <Button type="submit" disabled={pending || !institutions.length}>
-            {pending ? "Création…" : "Ajouter"}
+            {pending ? t("creating") : t("submit")}
           </Button>
         </div>
 
         {!institutions.length && (
-          <p className="text-xs text-[var(--negative)] text-center">
-            Ajoutez d&apos;abord une institution dans Paramètres.
-          </p>
+          <p className="text-xs text-[var(--negative)] text-center">{t("addFirst")}</p>
         )}
       </form>
     </Dialog>

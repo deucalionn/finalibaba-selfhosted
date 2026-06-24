@@ -15,16 +15,7 @@ import { DeleteAccountButton } from "@/components/delete-account-button";
 import { updateInvestmentStartDate } from "@/lib/actions/accounts";
 import Decimal from "decimal.js";
 import { calcLoanStats, hasLoanParams } from "@/lib/loan";
-
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Courant",
-  SAVINGS: "Épargne",
-  MEAL_VOUCHER: "Titre-resto",
-  INVESTMENT: "Investissements",
-  CRYPTO: "Crypto",
-  REAL_ESTATE: "Immobilier",
-  AUTOMOBILE: "Automobile",
-};
+import { getTranslations } from "next-intl/server";
 
 const TYPE_TO_TAB: Record<string, string> = {
   CHECKING: "liquidites",
@@ -49,6 +40,12 @@ export default async function AccountDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const [td, ta, t] = await Promise.all([
+    getTranslations("accountDetail"),
+    getTranslations("accountTypes"),
+    getTranslations("accounts"),
+  ]);
 
   const [account, userSettings] = await Promise.all([
     prisma.account.findUnique({
@@ -224,7 +221,7 @@ export default async function AccountDetailPage({
         className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors py-2 min-h-[44px]"
       >
         <ArrowLeft size={14} />
-        Comptes
+        {td("backToAccounts")}
       </Link>
 
       {/* Account header */}
@@ -240,7 +237,7 @@ export default async function AccountDetailPage({
                 />
               )}
               <p className="text-xs text-[var(--muted)]">
-                {account.institution?.name && `${account.institution.name} · `}{TYPE_LABELS[account.type]}{subtypeLabel}
+                {account.institution?.name && `${account.institution.name} · `}{ta(account.type as any)}{subtypeLabel}
               </p>
             </div>
             <h1 className="text-2xl font-semibold text-[var(--foreground)]">{account.name}</h1>
@@ -250,8 +247,7 @@ export default async function AccountDetailPage({
                   latestDelta > BigInt(0) ? "text-[var(--positive)]" : "text-[var(--negative)]"
                 }`}
               >
-                {latestDelta > BigInt(0) ? "+" : ""}
-                {formatCurrency(latestDelta)} depuis la dernière sync
+                {td("syncChanged", { delta: `${latestDelta > BigInt(0) ? "+" : ""}${formatCurrency(latestDelta)}` })}
               </p>
             )}
           </div>
@@ -261,7 +257,7 @@ export default async function AccountDetailPage({
             </p>
             {isInvestment && hasCostBasis && taxRate !== null && (
               <p className="text-xs text-[var(--muted)] mt-1">
-                ~{formatCurrency(netAfterTax, 0)} après impôts
+                {td("afterTax", { amount: formatCurrency(netAfterTax, 0) })}
               </p>
             )}
             {isFiat && !isSynced && (
@@ -334,7 +330,7 @@ export default async function AccountDetailPage({
       {isFiat && (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
           <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-            Évolution du solde
+            {td("balanceEvolution")}
           </h2>
           <BalanceHistoryChart data={chartData} />
         </div>
@@ -345,25 +341,25 @@ export default async function AccountDetailPage({
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Positions · {account.holdings.length} actif{account.holdings.length !== 1 ? "s" : ""}
+              {td("positions", { count: account.holdings.length, suffix: account.holdings.length !== 1 ? "s" : "" })}
             </h2>
           </div>
           {account.holdings.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-[var(--muted)]">
-              Aucune position.
+              {t("noHoldings")}
             </div>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)]">
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Actif</th>
-                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Quantité</th>
-                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Prix</th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value</th>
-                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Impôt latent</th>
-                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Poids</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.asset")}</th>
+                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.qty")}</th>
+                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.price")}</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.value")}</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.gain")}</th>
+                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.tax")}</th>
+                  <th scope="col" className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("table.weight")}</th>
                   {!isSynced && <th scope="col" className="px-4 py-3 w-10" />}
                 </tr>
               </thead>
@@ -466,13 +462,13 @@ export default async function AccountDetailPage({
             <div className="border-t border-[var(--border)] px-6 py-4 bg-[var(--surface-elevated)]">
               <div className="flex items-center justify-between gap-6 text-sm flex-wrap">
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-0.5">Prix de revient total</p>
+                  <p className="text-xs text-[var(--muted)] mb-0.5">{td("fiscalSummary.costBasis")}</p>
                   <p className="tabular-nums font-medium text-[var(--foreground)]">
                     {formatCurrency(totalCostBasis)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-0.5">Plus-value latente</p>
+                  <p className="text-xs text-[var(--muted)] mb-0.5">{td("fiscalSummary.latentGain")}</p>
                   <p
                     className={`tabular-nums font-semibold ${
                       totalGain >= BigInt(0) ? "text-[var(--positive)]" : "text-[var(--negative)]"
@@ -490,14 +486,14 @@ export default async function AccountDetailPage({
                 </div>
                 <div>
                   <p className="text-xs text-[var(--muted)] mb-0.5">
-                    Impôt latent ({account.investmentSubtype === "PEA" ? "17,2%" : "31,4%"})
+                    {td("fiscalSummary.taxLabel", { rate: ((taxRate ?? 0) * 100).toFixed(1) })}
                   </p>
                   <p className="tabular-nums font-semibold text-[var(--negative)]">
                     -{formatCurrency(totalTax)}
                   </p>
                 </div>
                 <div className="sm:border-l sm:border-[var(--border)] sm:pl-6">
-                  <p className="text-xs text-[var(--muted)] mb-0.5">Valeur nette après impôts</p>
+                  <p className="text-xs text-[var(--muted)] mb-0.5">{td("fiscalSummary.netAfterTax")}</p>
                   <p className="tabular-nums font-semibold text-[var(--accent)]">
                     {formatCurrency(netAfterTax)}
                   </p>
@@ -509,16 +505,14 @@ export default async function AccountDetailPage({
           {/* Hint si pas de prix de revient */}
           {!hasCostBasis && isInvestment && account.holdings.length > 0 && (
             <div className="border-t border-[var(--border)] px-6 py-3 text-xs text-[var(--muted)]">
-              {taxRate === null
-                ? "Définissez le type de compte (PEA/CTO) pour activer le calcul fiscal."
-                : "Renseignez le prix de revient sur chaque position pour voir les plus-values et l'impôt latent."}
+              {taxRate === null ? td("fiscalSubtype") : td("fiscalTip")}
             </div>
           )}
 
           {/* Date de début d'investissement */}
           <div className="border-t border-[var(--border)] px-6 py-4">
             <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-3">
-              Date de début d&apos;investissement
+              {td("investmentStartDate")}
             </p>
             <form action={updateInvestmentStartDate} className="flex items-center gap-3">
               <input type="hidden" name="id" value={account.id} />
@@ -536,11 +530,11 @@ export default async function AccountDetailPage({
                 type="submit"
                 className="text-xs px-3 py-2 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25 active:scale-[0.97] transition cursor-pointer font-medium min-h-[36px]"
               >
-                Enregistrer
+                {td("fiscalSummary.save")}
               </button>
               {account.investmentStartDate && (
                 <span className="text-xs text-[var(--muted)]">
-                  Utilisée pour le rendement annualisé dans Analytique
+                  {td("fiscalSummary.annualizedHint")}
                 </span>
               )}
             </form>
@@ -553,19 +547,19 @@ export default async function AccountDetailPage({
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 space-y-5">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Valeur estimée</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("realEstate.value")}</p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {formatCurrency(value, 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Capital restant dû</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("realEstate.remaining")}</p>
               <p className="tabular-nums font-semibold text-[var(--negative)]">
                 {formatCurrency(liability, 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Fonds propres</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("realEstate.equity")}</p>
               <p className="tabular-nums font-semibold text-[var(--positive)]">
                 {formatCurrency(equity, 0)}
               </p>
@@ -607,14 +601,14 @@ export default async function AccountDetailPage({
           <div className={`grid gap-3 sm:gap-4 text-sm ${purchasePrice > BigInt(0) ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-3"}`}>
             {purchasePrice > BigInt(0) && (
               <div>
-                <p className="text-xs text-[var(--muted)] mb-1">Prix d&apos;achat</p>
+                <p className="text-xs text-[var(--muted)] mb-1">{t("auto.purchasePrice")}</p>
                 <p className="tabular-nums font-semibold text-[var(--foreground)]">
                   {formatCurrency(purchasePrice, 0)}
                 </p>
               </div>
             )}
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Valeur actuelle</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("auto.value")}</p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {formatCurrency(value, 0)}
               </p>
@@ -624,7 +618,7 @@ export default async function AccountDetailPage({
               const deprPct = Number(depr) / Number(purchasePrice) * 100;
               return (
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Dépréciation</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("auto.depreciation")}</p>
                   <p className={`tabular-nums font-semibold ${depr <= BigInt(0) ? "text-[var(--negative)]" : "text-[var(--positive)]"}`}>
                     {depr > BigInt(0) ? "+" : ""}{formatCurrency(depr, 0)}
                   </p>
@@ -635,13 +629,13 @@ export default async function AccountDetailPage({
               );
             })()}
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Crédit restant dû</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("auto.loanDue")}</p>
               <p className="tabular-nums font-semibold text-[var(--negative)]">
                 {formatCurrency(liability, 0)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-[var(--muted)] mb-1">Valeur nette</p>
+              <p className="text-xs text-[var(--muted)] mb-1">{t("auto.netValue")}</p>
               <p className="tabular-nums font-semibold text-[var(--positive)]">
                 {formatCurrency(equity, 0)}
               </p>
@@ -650,7 +644,7 @@ export default async function AccountDetailPage({
           {liability > BigInt(0) && (
             <div>
               <div className="flex justify-between text-xs text-[var(--muted)] mb-1.5">
-                <span>Financement</span>
+                <span>{t("auto.financing")}</span>
                 <span>{ltv}%</span>
               </div>
               <div
@@ -659,7 +653,7 @@ export default async function AccountDetailPage({
                 aria-valuenow={ltv}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`Financement : ${ltv}%`}
+                aria-label={`${t("auto.financing")}: ${ltv}%`}
               >
                 <div
                   className={`h-full rounded-full ${
@@ -683,25 +677,25 @@ export default async function AccountDetailPage({
           {/* KPIs principaux */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm">
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Montant emprunté</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.amountBorrowed")}</p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {formatCurrency(account.loanAmountCents, 0)}
               </p>
             </div>
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Capital restant dû</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.remaining")}</p>
               <p className="tabular-nums font-semibold text-[var(--negative)]">
                 {formatCurrency(loanStats.currentCapitalCents, 0)}
               </p>
             </div>
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">TAEG</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.taeg")}</p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {account.loanTaeg.toFixed(2)} %
               </p>
             </div>
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Fin prévue</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.projectedEnd")}</p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(loanStats.endDate)}
               </p>
@@ -713,34 +707,34 @@ export default async function AccountDetailPage({
             {(account.loanDeferralMonths ?? 0) > 0 && (
               <div>
                 <p className="text-[var(--muted)] text-xs mb-1">
-                  Mensualité pendant le différé ({account.loanDeferralMonths} mois)
+                  {td("loanDetail.monthlyDuring", { months: account.loanDeferralMonths! })}
                 </p>
                 <p className="tabular-nums font-semibold text-[var(--foreground)]">
                   {formatCurrency(loanStats.deferralPaymentCents + (account.insuranceMonthlyCents ?? BigInt(0)))}
-                  <span className="text-xs text-[var(--muted)] font-normal ml-1">/ mois</span>
+                  <span className="text-xs text-[var(--muted)] font-normal ml-1">{td("loanDetail.perMonth")}</span>
                 </p>
-                <p className="text-xs text-[var(--muted)]">intérêts seuls{(account.insuranceMonthlyCents ?? BigInt(0)) > BigInt(0) ? " + assurance" : ""}</p>
+                <p className="text-xs text-[var(--muted)]">{td("loanDetail.interestOnly")}{(account.insuranceMonthlyCents ?? BigInt(0)) > BigInt(0) ? td("loanDetail.plusInsurance") : ""}</p>
               </div>
             )}
             <div>
               <p className="text-[var(--muted)] text-xs mb-1">
-                Mensualité {(account.loanDeferralMonths ?? 0) > 0 ? "après différé" : ""}
+                {(account.loanDeferralMonths ?? 0) > 0 ? td("loanDetail.monthlyAfterDeferred") : td("loanDetail.monthly")}
               </p>
               <p className="tabular-nums font-semibold text-[var(--foreground)]">
                 {formatCurrency(loanStats.amortPaymentCents + (account.insuranceMonthlyCents ?? BigInt(0)))}
-                <span className="text-xs text-[var(--muted)] font-normal ml-1">/ mois</span>
+                <span className="text-xs text-[var(--muted)] font-normal ml-1">{td("loanDetail.perMonth")}</span>
               </p>
               {(account.insuranceMonthlyCents ?? BigInt(0)) > BigInt(0) && (
                 <p className="text-xs text-[var(--muted)]">
-                  dont {formatCurrency(account.insuranceMonthlyCents!)} assurance
+                  {td("loanDetail.insuranceAmount", { amount: formatCurrency(account.insuranceMonthlyCents!) })}
                 </p>
               )}
             </div>
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Mensualité actuelle</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.currentMonthly")}</p>
               <p className="tabular-nums font-semibold text-[var(--accent)]">
                 {formatCurrency(loanStats.currentMonthlyTotalCents)}
-                <span className="text-xs text-[var(--muted)] font-normal ml-1">/ mois</span>
+                <span className="text-xs text-[var(--muted)] font-normal ml-1">{td("loanDetail.perMonth")}</span>
               </p>
             </div>
           </div>
@@ -748,21 +742,21 @@ export default async function AccountDetailPage({
           {/* Coût du crédit */}
           <div className="border-t border-[var(--border)] pt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Intérêts totaux</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.totalInterest")}</p>
               <p className="tabular-nums font-semibold text-[var(--negative)]">
                 {formatCurrency(loanStats.totalInterestCents, 0)}
               </p>
             </div>
             {(account.insuranceMonthlyCents ?? BigInt(0)) > BigInt(0) && (
               <div>
-                <p className="text-[var(--muted)] text-xs mb-1">Assurance totale</p>
+                <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.totalInsurance")}</p>
                 <p className="tabular-nums font-semibold text-[var(--negative)]">
                   {formatCurrency((account.insuranceMonthlyCents ?? BigInt(0)) * BigInt(account.loanDurationMonths), 0)}
                 </p>
               </div>
             )}
             <div>
-              <p className="text-[var(--muted)] text-xs mb-1">Coût total du crédit</p>
+              <p className="text-[var(--muted)] text-xs mb-1">{td("loanDetail.totalCost")}</p>
               <p className="tabular-nums font-semibold text-[var(--negative)]">
                 {formatCurrency(loanStats.totalCostCents, 0)}
               </p>
@@ -773,7 +767,7 @@ export default async function AccountDetailPage({
           <div className="border-t border-[var(--border)] pt-4">
             <div className="flex justify-between text-xs text-[var(--muted)] mb-2">
               <span>
-                Remboursement · {loanStats.monthsElapsed} mois écoulés sur {account.loanDurationMonths}
+                {td("loanDetail.repaymentProgress", { elapsed: loanStats.monthsElapsed, total: account.loanDurationMonths })}
               </span>
               <span>{loanStats.progressPct}%</span>
             </div>
@@ -783,7 +777,7 @@ export default async function AccountDetailPage({
               aria-valuenow={loanStats.progressPct}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`Remboursement : ${loanStats.progressPct}%`}
+              aria-label={`${td("loanDetail.repaymentProgress", { elapsed: loanStats.monthsElapsed, total: account.loanDurationMonths })}: ${loanStats.progressPct}%`}
             >
               <div
                 className={`h-full rounded-full transition-all ${
@@ -813,14 +807,14 @@ export default async function AccountDetailPage({
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--border)]">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Transactions · {account.transactions.length} opération{account.transactions.length !== 1 ? "s" : ""}
+              {td("transactions", { count: account.transactions.length, suffix: account.transactions.length !== 1 ? "s" : "" })}
             </h2>
           </div>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border)]">
-                {["Date", "Libellé", "Montant"].map((h) => (
+                {[td("tableHeaders.date"), td("tableHeaders.label"), td("tableHeaders.amount")].map((h) => (
                   <th
                     key={h}
                     className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider"
@@ -873,14 +867,14 @@ export default async function AccountDetailPage({
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--border)]">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Historique · {historyRows.length} entrée{historyRows.length !== 1 ? "s" : ""}
+              {td("history", { count: historyRows.length, suffix: historyRows.length !== 1 ? "s" : "" })}
             </h2>
           </div>
           <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[320px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
-                {["Date", "Solde", "Variation"].map((h) => (
+                {[td("tableHeaders.date"), td("tableHeaders.balance"), td("tableHeaders.change")].map((h) => (
                   <th
                     key={h}
                     className="px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider"

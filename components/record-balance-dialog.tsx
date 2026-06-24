@@ -6,6 +6,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { recordBalance } from "@/lib/actions/balances";
+import { useTranslations } from "next-intl";
 
 export function RecordBalanceDialog({
   accountId,
@@ -18,6 +19,8 @@ export function RecordBalanceDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("recordBalance");
+  const tc = useTranslations("common");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,18 +37,18 @@ export function RecordBalanceDialog({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title={`Mettre à jour — ${accountName}`}
+      title={t("title", { name: accountName })}
       trigger={
         <Button variant="outline" size="sm">
           <Pencil size={12} aria-hidden="true" />
-          Mettre à jour
+          {t("update")}
         </Button>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="accountId" value={accountId} />
         <Input
-          label="Nouveau solde (€)"
+          label={t("balance")}
           name="balance"
           type="number"
           step="0.01"
@@ -53,15 +56,11 @@ export function RecordBalanceDialog({
           required
         />
         <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpen(false)}
-          >
-            Annuler
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            {tc("cancel")}
           </Button>
           <Button type="submit" disabled={pending}>
-            {pending ? "Enregistrement…" : "Enregistrer"}
+            {pending ? tc("saving") : t("submit")}
           </Button>
         </div>
       </form>

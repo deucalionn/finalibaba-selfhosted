@@ -6,6 +6,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { upsertHolding } from "@/lib/actions/holdings";
+import { useTranslations } from "next-intl";
 
 type Holding = {
   id: string;
@@ -27,6 +28,8 @@ export function AddHoldingDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const t = useTranslations("addHolding");
+  const tc = useTranslations("common");
   const isEdit = !!existing;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -42,16 +45,16 @@ export function AddHoldingDialog({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title={isEdit ? `Modifier — ${existing.ticker}` : `Ajouter une position — ${accountName}`}
+      title={isEdit ? t("editTitle", { ticker: existing.ticker }) : t("addTitle", { name: accountName })}
       trigger={
         isEdit ? (
-          <Button variant="ghost" size="sm" aria-label="Modifier">
+          <Button variant="ghost" size="sm" aria-label={t("editAriaLabel")}>
             <Pencil size={12} aria-hidden="true" />
           </Button>
         ) : (
           <Button size="sm">
             <Plus size={14} aria-hidden="true" />
-            Position
+            {t("position")}
           </Button>
         )
       }
@@ -59,7 +62,7 @@ export function AddHoldingDialog({
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="accountId" value={accountId} />
         <Input
-          label="Ticker / Symbole"
+          label={t("ticker")}
           name="ticker"
           placeholder="MSFT, BTC, ETH…"
           defaultValue={existing?.ticker}
@@ -67,13 +70,13 @@ export function AddHoldingDialog({
           readOnly={isEdit}
         />
         <Input
-          label="Nom de l'actif"
+          label={t("name")}
           name="name"
           placeholder="Microsoft, Bitcoin…"
           defaultValue={existing?.name ?? ""}
         />
         <Input
-          label="Quantité"
+          label={t("qty")}
           name="quantity"
           type="number"
           step="any"
@@ -83,7 +86,7 @@ export function AddHoldingDialog({
           required
         />
         <Input
-          label="Prix unitaire actuel (€)"
+          label={t("price")}
           name="price"
           type="number"
           step="0.01"
@@ -93,27 +96,25 @@ export function AddHoldingDialog({
           required
         />
         <Input
-          label="Prix de revient total (€) — optionnel"
+          label={t("costBasis")}
           name="costBasis"
           type="number"
           step="0.01"
           min="0"
-          placeholder="Montant total investi, ex: 5000.00"
+          placeholder={t("costBasisPlaceholder")}
           defaultValue={
             existing?.costBasisCents != null
               ? (Number(existing.costBasisCents) / 100).toFixed(2)
               : ""
           }
         />
-        <p className="text-xs text-[var(--muted)] -mt-2">
-          Sert à calculer les plus-values et l&apos;impôt latent.
-        </p>
+        <p className="text-xs text-[var(--muted)] -mt-2">{t("taxHint")}</p>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Annuler
+            {tc("cancel")}
           </Button>
           <Button type="submit" disabled={pending}>
-            {pending ? "Enregistrement…" : isEdit ? "Mettre à jour" : "Ajouter"}
+            {pending ? tc("saving") : isEdit ? t("update") : t("submit")}
           </Button>
         </div>
       </form>

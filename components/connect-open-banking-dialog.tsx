@@ -4,24 +4,7 @@ import { useState, useEffect, useRef, useTransition } from "react";
 import { Link, Search, Loader2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { setGocardlessInstitutionId } from "@/lib/actions/institutions";
-
-const COUNTRIES = [
-  { code: "FR", label: "France" },
-  { code: "DE", label: "Allemagne" },
-  { code: "ES", label: "Espagne" },
-  { code: "IT", label: "Italie" },
-  { code: "BE", label: "Belgique" },
-  { code: "NL", label: "Pays-Bas" },
-  { code: "PT", label: "Portugal" },
-  { code: "AT", label: "Autriche" },
-  { code: "PL", label: "Pologne" },
-  { code: "GB", label: "Royaume-Uni" },
-  { code: "IE", label: "Irlande" },
-  { code: "SE", label: "Suède" },
-  { code: "DK", label: "Danemark" },
-  { code: "FI", label: "Finlande" },
-  { code: "NO", label: "Norvège" },
-];
+import { useLocale, useTranslations } from "next-intl";
 
 interface GCInstitution {
   id: string;
@@ -34,6 +17,8 @@ interface Props {
   institutionName: string;
 }
 
+const COUNTRY_CODES = ["FR", "DE", "ES", "IT", "BE", "NL", "PT", "AT", "PL", "GB", "IE", "SE", "DK", "FI", "NO"];
+
 export function ConnectOpenBankingDialog({ institutionId, institutionName }: Props) {
   const [open, setOpen] = useState(false);
   const [country, setCountry] = useState("FR");
@@ -42,6 +27,10 @@ export function ConnectOpenBankingDialog({ institutionId, institutionName }: Pro
   const [loading, setLoading] = useState(false);
   const [pending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t = useTranslations("connectOpenBanking");
+  const locale = useLocale();
+
+  const countryNames = new Intl.DisplayNames([locale], { type: "region" });
 
   useEffect(() => {
     if (!open) return;
@@ -71,34 +60,34 @@ export function ConnectOpenBankingDialog({ institutionId, institutionName }: Pro
     <Dialog
       open={open}
       onOpenChange={(v) => { setOpen(v); if (!v) { setSearch(""); setResults([]); } }}
-      title={`Connecter ${institutionName} via Open Banking`}
+      title={t("title", { name: institutionName })}
       trigger={
         <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 min-h-[44px] rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity cursor-pointer">
           <Link size={12} aria-hidden="true" />
-          Connecter
+          {t("connect")}
         </button>
       }
     >
       <div className="space-y-3">
         <div className="flex gap-2">
           <select
-            aria-label="Pays"
+            aria-label={t("countryAriaLabel")}
             value={country}
             onChange={(e) => { setCountry(e.target.value); setSearch(""); }}
             className="bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] shrink-0 cursor-pointer"
           >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
+            {COUNTRY_CODES.map((code) => (
+              <option key={code} value={code}>{countryNames.of(code) ?? code}</option>
             ))}
           </select>
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
             <input
               type="text"
-              aria-label="Rechercher une banque"
+              aria-label={t("searchAriaLabel")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une banque…"
+              placeholder={t("search")}
               autoFocus
               className="w-full bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg pl-8 pr-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/30"
             />
@@ -107,12 +96,12 @@ export function ConnectOpenBankingDialog({ institutionId, institutionName }: Pro
 
         <div className="max-h-72 overflow-y-auto rounded-lg border border-[var(--border)] divide-y divide-[var(--border)]">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-[var(--muted)]" role="status" aria-label="Chargement en cours">
+            <div className="flex items-center justify-center py-10 text-[var(--muted)]" role="status" aria-label={t("loading")}>
               <Loader2 size={18} className="animate-spin" aria-hidden="true" />
             </div>
           ) : results.length === 0 ? (
             <p className="py-10 text-center text-sm text-[var(--muted)]">
-              {search ? "Aucune banque trouvée" : "Chargement…"}
+              {search ? t("noBank") : t("loading")}
             </p>
           ) : (
             results.map((inst) => (
@@ -134,9 +123,7 @@ export function ConnectOpenBankingDialog({ institutionId, institutionName }: Pro
           )}
         </div>
 
-        <p className="text-xs text-[var(--muted)]">
-          Vous serez redirigé vers votre banque pour autoriser l&apos;accès.
-        </p>
+        <p className="text-xs text-[var(--muted)]">{t("redirectHint")}</p>
       </div>
     </Dialog>
   );

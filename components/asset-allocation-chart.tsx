@@ -1,6 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { useTranslations } from "next-intl";
 
 export type AllocationSlice = {
   name: string;
@@ -19,12 +20,13 @@ function formatCurrency(cents: number) {
 }
 
 export function AssetAllocationChart({ data }: { data: AllocationSlice[] }) {
+  const t = useTranslations("charts");
   const nonEmpty = data.filter((d) => d.value > 0);
 
   if (!nonEmpty.length) {
     return (
       <div className="h-48 flex items-center justify-center text-[var(--muted)] text-sm">
-        Aucune donnée
+        {t("noData")}
       </div>
     );
   }
@@ -33,7 +35,7 @@ export function AssetAllocationChart({ data }: { data: AllocationSlice[] }) {
 
   return (
     <div>
-      <div role="img" aria-label="Répartition des actifs par catégorie">
+      <div role="img" aria-label={t("allocationAria")}>
       <ResponsiveContainer width="100%" height={190}>
         <PieChart>
           <Pie

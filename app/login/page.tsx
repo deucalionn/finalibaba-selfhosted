@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const t = useTranslations("auth");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,24 +33,19 @@ export default function LoginPage() {
       router.push("/");
       router.refresh();
     } else {
-      setError("Mot de passe incorrect");
+      setError(t("errorInvalid"));
       setPassword("");
     }
   }
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center px-4">
-      {/* Card */}
       <div className="w-full max-w-sm">
-        {/* Logo + name */}
         <div className="flex flex-col items-center mb-8">
-          {/* Icon */}
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #6366f1, #4338ca)" }}
           >
-            {/* F letter */}
             <span className="text-white font-extrabold text-3xl tracking-tighter select-none">F</span>
-            {/* Trend bars decoration */}
             <div className="absolute bottom-2 right-2 flex items-end gap-0.5">
               <div className="w-1 h-1.5 rounded-sm bg-green-400 opacity-90" />
               <div className="w-1 h-2.5 rounded-sm bg-green-400 opacity-90" />
@@ -56,15 +53,14 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-[var(--foreground)] tracking-tight">Finalibaba</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Votre patrimoine, en un coup d&apos;œil</p>
+          <p className="text-sm text-[var(--muted)] mt-1">{t("subtitle")}</p>
         </div>
 
-        {/* Form */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label htmlFor="password" className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Mot de passe
+                {t("password")}
               </label>
               <div className="relative">
                 <input
@@ -79,7 +75,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                   className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset rounded-r-xl"
                 >
                   {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
@@ -106,17 +102,16 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Connexion…
+                  {t("loading")}
                 </span>
-              ) : "Se connecter"}
+              ) : t("submit")}
             </button>
           </form>
         </div>
 
-        {/* Footer */}
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[var(--muted)]">
           <TrendingUp size={12} aria-hidden="true" />
-          <span>Vos données restent sur votre serveur</span>
+          <span>{t("footer")}</span>
         </div>
       </div>
     </div>

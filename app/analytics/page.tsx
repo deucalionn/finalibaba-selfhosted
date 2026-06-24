@@ -11,24 +11,15 @@ import {
   type AnalyticsExportData,
 } from "@/components/export-analytics-button";
 import { calcCurrentCapital, hasLoanParams } from "@/lib/loan";
+import { getTranslations } from "next-intl/server";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Liquidités: "#6366f1",
-  Épargne: "#8b5cf6",
-  Investissements: "#22c55e",
-  Crypto: "#f59e0b",
-  Immobilier: "#3b82f6",
-  Automobile: "#ec4899",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Courant",
-  SAVINGS: "Épargne",
-  MEAL_VOUCHER: "Titre-resto",
-  INVESTMENT: "Investissements",
-  CRYPTO: "Crypto",
-  REAL_ESTATE: "Immobilier",
-  AUTOMOBILE: "Automobile",
+  cash: "#6366f1",
+  savings: "#8b5cf6",
+  investments: "#22c55e",
+  crypto: "#f59e0b",
+  realEstate: "#3b82f6",
+  auto: "#ec4899",
 };
 
 
@@ -149,6 +140,12 @@ function holdingMarketValue(h: { quantity: Decimal; lastPriceCents: bigint }): b
 }
 
 export default async function AnalyticsPage() {
+  const [t, ta, tAlloc] = await Promise.all([
+    getTranslations("analytics"),
+    getTranslations("accountTypes"),
+    getTranslations("allocation"),
+  ]);
+
   const [accounts, allBalances, settings, yfData] = await Promise.all([
     prisma.account.findMany({
       include: {
@@ -198,12 +195,12 @@ export default async function AnalyticsPage() {
   const dividendRowsData: DividendRow[] = [];
 
   const allocation: Record<string, bigint> = {
-    Liquidités: BigInt(0),
-    Épargne: BigInt(0),
-    Investissements: BigInt(0),
-    Crypto: BigInt(0),
-    Immobilier: BigInt(0),
-    Automobile: BigInt(0),
+    cash: BigInt(0),
+    savings: BigInt(0),
+    investments: BigInt(0),
+    crypto: BigInt(0),
+    realEstate: BigInt(0),
+    auto: BigInt(0),
   };
 
   const now = new Date();
@@ -256,7 +253,7 @@ export default async function AnalyticsPage() {
       const liability = account.liabilityCents ?? BigInt(0);
       totalLiabilities += liability;
       const equity = value - liability > BigInt(0) ? value - liability : BigInt(0);
-      allocation[account.type === "AUTOMOBILE" ? "Automobile" : "Immobilier"] += equity;
+      allocation[account.type === "AUTOMOBILE" ? "auto" : "realEstate"] += equity;
       grossAssets += value;
     } else if (account.type === "INVESTMENT" || account.type === "CRYPTO") {
       for (const h of account.holdings) {
@@ -320,7 +317,7 @@ export default async function AnalyticsPage() {
           investmentStartDate: account.investmentStartDate ?? null,
         });
       }
-      allocation[account.type === "CRYPTO" ? "Crypto" : "Investissements"] += value;
+      allocation[account.type === "CRYPTO" ? "crypto" : "investments"] += value;
       grossAssets += value;
     } else if (account.type === "LOAN") {
       // Loan: pure liability — reduces net worth, no asset counterpart
@@ -342,7 +339,7 @@ export default async function AnalyticsPage() {
     } else {
       value = account.history[0]?.balanceCents ?? BigInt(0);
       if (account.type === "SAVINGS") {
-        allocation["Épargne"] += value;
+        allocation["savings"] += value;
         // French regulated savings rates as of 2026-06-01 — update when rates change
         const name = account.name.toLowerCase();
         let rate = 0;
@@ -353,7 +350,7 @@ export default async function AnalyticsPage() {
         else if (name.includes("livret")) rate = 0.015;   // other regulated savings: 1.5%
         if (rate > 0) annualInterestCents += BigInt(Math.round(Number(value) * rate));
       } else {
-        allocation["Liquidités"] += value;
+        allocation["cash"] += value;
         // Trade Republic cash account: 2% gross → 1.372% net (flat tax 31.4%: 12.8% income tax withheld at source + 17.2% social levies + 0.2% exceptional contribution)
         if (account.syncId === "tr:cash") {
           annualInterestCents += BigInt(Math.round(Number(value) * 0.01372));
@@ -408,14 +405,14 @@ export default async function AnalyticsPage() {
     : 0;
   const investedPct = grossAssets > BigInt(0)
     ? Math.round(
-        (Number(allocation["Investissements"] + allocation["Crypto"]) / Number(grossAssets)) * 100
+        (Number(allocation["investments"] + allocation["crypto"]) / Number(grossAssets)) * 100
       )
     : 0;
   const hasTaxData = totalLatentTax > BigInt(0);
 
   // ── Allocation metrics ───────────────────────────────────────────────────
-  const garantis = allocation["Liquidités"] + allocation["Épargne"];
-  const risques = allocation["Investissements"] + allocation["Crypto"];
+  const garantis = allocation["cash"] + allocation["savings"];
+  const risques = allocation["investments"] + allocation["crypto"];
   const garantisTotal = garantis + risques;
   const garantisPct = garantisTotal > BigInt(0)
     ? Math.round((Number(garantis) / Number(garantisTotal)) * 100)
@@ -458,7 +455,7 @@ export default async function AnalyticsPage() {
 
   // Runway = total savings / monthly expenses
   const runwayMonths = hasExpenses
-    ? Number(allocation["Épargne"]) / Number(settings.monthlyExpensesCents)
+    ? Number(allocation["savings"]) / Number(settings.monthlyExpensesCents)
     : null;
 
   // ── History ─────────────────────────────────────────────────────────────
@@ -542,10 +539,10 @@ export default async function AnalyticsPage() {
   // ── Allocation slices ───────────────────────────────────────────────────
   const allocationSlices: AllocationSlice[] = Object.entries(allocation)
     .filter(([, v]) => v > BigInt(0))
-    .map(([name, value]) => ({
-      name,
+    .map(([key, value]) => ({
+      name: tAlloc(key as Parameters<typeof tAlloc>[0]),
       value: Number(value),
-      color: CATEGORY_COLORS[name] ?? "#6b7280",
+      color: CATEGORY_COLORS[key] ?? "#6b7280",
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -630,8 +627,8 @@ export default async function AnalyticsPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--foreground)]">Analytique</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Analyse détaillée de votre patrimoine</p>
+          <h1 className="text-2xl font-semibold text-[var(--foreground)]">{t("title")}</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">{t("subtitle")}</p>
         </div>
         <ExportAnalyticsButton data={analyticsExport} />
       </div>
@@ -639,7 +636,7 @@ export default async function AnalyticsPage() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Patrimoine Net</p>
+          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.netWorth")}</p>
           <p className="text-2xl font-semibold tabular-nums text-[var(--accent)]">
             {formatCurrency(hasTaxData ? netWorthAfterTax : netWorth, 0)}
           </p>
@@ -650,45 +647,45 @@ export default async function AnalyticsPage() {
               }`}
             >
               {momDelta >= 0 ? "+" : ""}
-              {formatCurrency(momDelta, 0)} ce mois
+              {formatCurrency(momDelta, 0)} {t("kpis.thisMonth")}
             </p>
           )}
           {hasTaxData && (
             <p className="text-xs text-[var(--muted)] mt-1">
-              ~{formatCurrency(netWorth, 0)} avant impôts
+              ~{formatCurrency(netWorth, 0)} {t("kpis.beforeTax")}
             </p>
           )}
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Patrimoine Brut</p>
+          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.grossWorth")}</p>
           <p className="text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatCurrency(grossAssets, 0)}
           </p>
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Passif total</p>
+          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.totalLiabilities")}</p>
           <p className="text-2xl font-semibold tabular-nums text-[var(--negative)]">
             {formatCurrency(totalLiabilities + totalLatentTax, 0)}
           </p>
           {grossAssets > BigInt(0) && (
             <div className="mt-1 space-y-0.5">
               <p className="text-xs text-[var(--muted)]">
-                Dettes : {formatCurrency(totalLiabilities, 0)}
+                {t("kpis.debts")} {formatCurrency(totalLiabilities, 0)}
               </p>
               {hasTaxData && (
                 <p className="text-xs text-[var(--muted)]">
-                  Impôts latents : {formatCurrency(totalLatentTax, 0)}
+                  {t("kpis.latentTax")} {formatCurrency(totalLatentTax, 0)}
                 </p>
               )}
             </div>
           )}
         </div>
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Taux investi</p>
+          <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">{t("kpis.investedRate")}</p>
           <p className="text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {investedPct}%
           </p>
-          <p className="text-xs text-[var(--muted)] mt-1">du patrimoine brut</p>
+          <p className="text-xs text-[var(--muted)] mt-1">{t("kpis.ofGross")}</p>
         </div>
       </div>
 
@@ -698,12 +695,12 @@ export default async function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Taux d'épargne */}
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-              <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">Taux d&apos;épargne</p>
+              <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">{t("savingsRate.title")}</p>
               {!hasSalary ? (
                 <div>
                   <p className="text-2xl font-semibold text-[var(--muted)]">—</p>
                   <Link href="/settings" className="text-xs text-[var(--accent)] mt-1 inline-flex items-center min-h-[44px] hover:underline">
-                    Configurez votre salaire →
+                    {t("savingsRate.configureSalary")}
                   </Link>
                 </div>
               ) : savingsRate === null ? (
@@ -726,25 +723,25 @@ export default async function AnalyticsPage() {
                     </p>
                     {savingsRate >= 40 && (
                       <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--positive)]/15 text-[var(--positive)]">
-                        Élite
+                        {t("savingsRate.elite")}
                       </span>
                     )}
                     {savingsRate >= 20 && savingsRate < 40 && (
                       <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)]">
-                        Bon
+                        {t("savingsRate.good")}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-[var(--muted)] mt-1">
                     {hasDeclaredSavings
-                      ? <>{formatCurrency(settings.monthlySavedCents, 0)} déclarés / {formatCurrency(settings.salaryNetCents, 0)} salaire</>
-                      : <>{formatCurrency(momDelta!, 0)} MOM / {formatCurrency(settings.salaryNetCents, 0)} salaire</>
+                      ? t("savingsRate.declaredSavings", { saved: formatCurrency(settings.monthlySavedCents, 0), salary: formatCurrency(settings.salaryNetCents, 0) })
+                      : t("savingsRate.momSavings", { mom: formatCurrency(momDelta!, 0), salary: formatCurrency(settings.salaryNetCents, 0) })
                     }
                   </p>
                   <p className="text-xs text-[var(--muted)] mt-0.5 opacity-70">
                     {hasDeclaredSavings
-                      ? "Montant déclaré — hors virements inter-comptes et perf marché"
-                      : "Variation patrimoine MOM — peut inclure transferts et marchés"
+                      ? t("savingsRate.hintDeclared")
+                      : t("savingsRate.hintMom")
                     }
                   </p>
                 </div>
@@ -753,12 +750,12 @@ export default async function AnalyticsPage() {
 
             {/* Runway */}
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-              <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">Runway · Mois de survie</p>
+              <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-3">{t("runway.title")}</p>
               {!hasExpenses ? (
                 <div>
                   <p className="text-2xl font-semibold text-[var(--muted)]">—</p>
                   <Link href="/settings" className="text-xs text-[var(--accent)] mt-1 inline-flex items-center min-h-[44px] hover:underline">
-                    Configurez vos dépenses →
+                    {t("runway.configureExpenses")}
                   </Link>
                 </div>
               ) : runwayMonths === null ? (
@@ -774,17 +771,17 @@ export default async function AnalyticsPage() {
                         : "text-[var(--negative)]"
                     }`}
                   >
-                    {Math.floor(runwayMonths)} mois
+                    {t("runway.months", { count: Math.floor(runwayMonths) })}
                   </p>
                   <p className="text-xs text-[var(--muted)] mt-1">
-                    {formatCurrency(allocation["Épargne"], 0)} épargne / {formatCurrency(settings.monthlyExpensesCents, 0)} / mois
+                    {t("runway.detail", { savings: formatCurrency(allocation["savings"], 0), expenses: formatCurrency(settings.monthlyExpensesCents, 0) })}
                   </p>
                   <p className="text-xs text-[var(--muted)] mt-0.5 opacity-70">
                     {runwayMonths >= 12
-                      ? "Sécurité solide"
+                      ? t("runway.safe")
                       : runwayMonths >= 6
-                      ? "Tampon acceptable"
-                      : "Attention — renforcer l'épargne de précaution"}
+                      ? t("runway.ok")
+                      : t("runway.warning")}
                   </p>
                 </div>
               )}
@@ -797,7 +794,7 @@ export default async function AnalyticsPage() {
             <div>
               <div className="flex flex-wrap items-center justify-between gap-y-1 mb-2">
                 <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Cap des {formatCurrency(goalCents, 0)}
+                  {t("goal.title", { amount: formatCurrency(goalCents, 0) })}
                 </p>
                 <div className="flex items-center gap-2">
                   <span
@@ -809,7 +806,7 @@ export default async function AnalyticsPage() {
                   </span>
                   {goalRemaining > BigInt(0) && (
                     <span className="text-xs text-[var(--muted)] hidden sm:inline">
-                      · encore {formatCurrency(goalRemaining, 0)}
+                      · {t("goal.remaining", { amount: formatCurrency(goalRemaining, 0) })}
                     </span>
                   )}
                 </div>
@@ -820,7 +817,7 @@ export default async function AnalyticsPage() {
                 aria-valuenow={goalPct}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`Objectif : ${goalPct}%`}
+                aria-label={t("goal.aria", { pct: goalPct })}
               >
                 <div
                   className={`h-full rounded-full transition-all ${
@@ -839,44 +836,44 @@ export default async function AnalyticsPage() {
             {annualPassiveCents > BigInt(0) && (
               <div className="pt-4 border-t border-[var(--border)]">
                 <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-3">
-                  Revenus passifs estimés
+                  {t("passive.title")}
                 </p>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <div>
-                    <p className="text-xs text-[var(--muted)] mb-1">Par an</p>
+                    <p className="text-xs text-[var(--muted)] mb-1">{t("passive.perYear")}</p>
                     <p className="text-lg font-semibold tabular-nums text-[var(--positive)]">
                       {formatCurrency(annualPassiveCents, 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--muted)] mb-1">Par mois</p>
+                    <p className="text-xs text-[var(--muted)] mb-1">{t("passive.perMonth")}</p>
                     <p className="text-lg font-semibold tabular-nums text-[var(--positive)]">
                       {formatCurrency(monthlyPassiveCents, 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--muted)] mb-1">Par jour</p>
+                    <p className="text-xs text-[var(--muted)] mb-1">{t("passive.perDay")}</p>
                     <p className="text-lg font-semibold tabular-nums text-[var(--positive)]">
                       {formatCurrency(dailyPassiveCents, 2)}
                     </p>
-                    <p className="text-xs text-[var(--muted)] mt-0.5">même quand tu dors</p>
+                    <p className="text-xs text-[var(--muted)] mt-0.5">{t("passive.tagline")}</p>
                   </div>
                 </div>
                 {annualDividendsCents > BigInt(0) && (
                   <div className="mt-3 space-y-0.5">
                     <p className="text-xs text-[var(--muted)] opacity-70">
-                      Dividendes (net) {formatCurrency(annualDividendsNetCents, 0)}
-                      <span className="ml-1 opacity-60">· brut {formatCurrency(annualDividendsCents, 0)} − PFU 30%</span>
+                      {t("passive.dividendsNet", { amount: formatCurrency(annualDividendsNetCents, 0) })}
+                      <span className="ml-1 opacity-60">{t("passive.dividendsGross", { gross: formatCurrency(annualDividendsCents, 0) })}</span>
                     </p>
                     {annualInterestCents > BigInt(0) && (
                       <p className="text-xs text-[var(--muted)] opacity-70">
-                        Intérêts livrets {formatCurrency(annualInterestCents, 0)} (exonérés d&apos;IR)
+                        {t("passive.interest", { amount: formatCurrency(annualInterestCents, 0) })}
                       </p>
                     )}
                   </div>
                 )}
                 <p className="text-xs text-[var(--muted)] mt-1 opacity-70">
-                  Montants nets · Livrets (LEP 2,5 % · Livret Jeune 2,5 % · Livret A 1,5 % · LDDS 1,5 %) + TR cash 1,372 % net (2 % brut − PFU 31,4 %) + dividendes actions — ETFs capitalisants exclus
+                  {t("passive.footnote")}
                 </p>
               </div>
             )}
@@ -886,13 +883,13 @@ export default async function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="md:col-span-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
               <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-                Évolution du patrimoine
+                {t("charts.netWorthEvolution")}
               </h2>
               <NetWorthChart data={dailyHistory} />
             </div>
             <div className="md:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
               <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-                Répartition
+                {t("charts.allocation")}
               </h2>
               <AssetAllocationChart data={allocationSlices} />
             </div>
@@ -903,11 +900,11 @@ export default async function AnalyticsPage() {
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-6">
               <div className="flex items-baseline justify-between mb-1">
                 <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Dividendes
+                  {t("dividends.title")}
                 </h2>
                 <div className="text-right">
                   <span className="text-sm font-semibold tabular-nums text-[var(--positive)]">
-                    ~{formatCurrency(annualDividendsNetCents, 0)} net / an
+                    ~{formatCurrency(annualDividendsNetCents, 0)} {t("dividends.netPerYear")}
                   </span>
                   <span className="text-xs text-[var(--muted)] ml-2">
                     brut {formatCurrency(annualDividendsCents, 0)}
@@ -915,7 +912,7 @@ export default async function AnalyticsPage() {
                 </div>
               </div>
               <p className="text-xs text-[var(--muted)] mb-4 opacity-70">
-                Estimation nette · CTO FR: −30% PFU · CTO US/NL: −32,2% (retenue 15% + PS 17,2%) · PEA: exonéré
+                {t("dividends.footnote")}
               </p>
               <div className="divide-y divide-[var(--border)]">
                 {dividendCalendar.map((row) => {
@@ -953,14 +950,14 @@ export default async function AnalyticsPage() {
                             isPast ? "text-[var(--muted)]" : isSoon ? "text-amber-400" : "text-[var(--foreground)]"
                           }`}>
                             {isPast
-                              ? `Ex-div le ${row.exDividendDate.toLocaleDateString("fr-FR")}`
+                              ? t("dividends.exDivPast", { date: row.exDividendDate.toLocaleDateString("fr-FR") })
                               : daysLeft === 0
-                              ? "Ex-div aujourd'hui"
-                              : `Ex-div dans ${daysLeft}j · ${row.exDividendDate.toLocaleDateString("fr-FR")}`
+                              ? t("dividends.exDivToday")
+                              : t("dividends.exDivSoon", { days: daysLeft!, date: row.exDividendDate.toLocaleDateString("fr-FR") })
                             }
                           </p>
                         ) : (
-                          <p className="text-xs text-[var(--muted)] mt-0.5">Date inconnue</p>
+                          <p className="text-xs text-[var(--muted)] mt-0.5">{t("dividends.exDivUnknown")}</p>
                         )}
                       </div>
                     </div>
@@ -968,7 +965,7 @@ export default async function AnalyticsPage() {
                 })}
               </div>
               <p className="text-xs text-[var(--muted)] mt-3 opacity-70">
-                Brut = yield TTM × valeur de position (Yahoo Finance) · Net = estimation sous PFU, résident français — non contractuel
+                {t("dividends.withholding")}
               </p>
             </div>
           )}
@@ -977,45 +974,45 @@ export default async function AnalyticsPage() {
           {investPerfRows.length > 0 && investTotalCostBasis > BigInt(0) && (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-6">
               <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-                Performance portefeuille · CTO / PEA
+                {t("performance.title")}
               </h2>
 
               {/* Résumé global */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Investi</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("performance.invested")}</p>
                   <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
                     {formatCurrency(investTotalCostBasis, 0)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Valeur actuelle</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("performance.currentValue")}</p>
                   <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
                     {formatCurrency(investTotalValue, 0)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Plus-value brute</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("performance.grossGain")}</p>
                   <p className={`text-lg font-semibold tabular-nums ${investTotalGain >= BigInt(0) ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                     {investTotalGain >= BigInt(0) ? "+" : ""}{formatCurrency(investTotalGain, 0)}
                   </p>
                   <p className="text-xs text-[var(--muted)] mt-0.5 opacity-70">
-                    {investReturnPct >= 0 ? "+" : ""}{investReturnPct.toFixed(1)}% sur coût d&apos;achat
+                    {investReturnPct >= 0 ? "+" : ""}{investReturnPct.toFixed(1)}% {t("performance.onCost")}
                     {investCAGR !== null && (
                       <> · <span className={investCAGR >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}>
-                        {investCAGR >= 0 ? "+" : ""}{investCAGR.toFixed(1)}% / an (CAGR)
+                        {investCAGR >= 0 ? "+" : ""}{investCAGR.toFixed(1)}% {t("performance.perYear")}
                       </span></>
                     )}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Plus-value nette</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("performance.netGain")}</p>
                   <p className={`text-lg font-semibold tabular-nums ${investTotalGainNet >= BigInt(0) ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
                     {investTotalGainNet >= BigInt(0) ? "+" : ""}{formatCurrency(investTotalGainNet, 0)}
                   </p>
                   {investTotalTax > BigInt(0) && (
                     <p className="text-xs text-[var(--muted)] mt-0.5 opacity-70">
-                      impôts latents −{formatCurrency(investTotalTax, 0)}
+                      {t("performance.latentTax")} −{formatCurrency(investTotalTax, 0)}
                     </p>
                   )}
                 </div>
@@ -1027,12 +1024,12 @@ export default async function AnalyticsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-[var(--border)]">
-                        <th scope="col" className="pb-2 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Compte</th>
-                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Investi</th>
-                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value brute</th>
-                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value nette</th>
-                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">CAGR</th>
+                        <th scope="col" className="pb-2 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colAccount")}</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colInvested")}</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colValue")}</th>
+                        <th scope="col" className="pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colGrossGain")}</th>
+                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colNetGain")}</th>
+                        <th scope="col" className="hidden sm:table-cell pb-2 text-right text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("performance.colCagr")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1058,7 +1055,7 @@ export default async function AnalyticsPage() {
                               <p className="text-xs text-[var(--muted)]">
                                 {row.institution}{row.subtype && ` · ${row.subtype}`}
                                 {row.investmentStartDate && (
-                                  <> · depuis {row.investmentStartDate.toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}</>
+                                  <> · {t("performance.since", { date: row.investmentStartDate.toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) })}</>
                                 )}
                               </p>
                             </td>
@@ -1084,7 +1081,7 @@ export default async function AnalyticsPage() {
                             <td className="hidden sm:table-cell py-3 pl-2 text-right tabular-nums">
                               {cagr !== null ? (
                                 <span className={cagr >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}>
-                                  {cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}% / an
+                                  {cagr >= 0 ? "+" : ""}{cagr.toFixed(1)}% {t("performance.perYear")}
                                 </span>
                               ) : (
                                 <span className="text-[var(--muted)] text-xs">—</span>
@@ -1098,9 +1095,9 @@ export default async function AnalyticsPage() {
                 </div>
               )}
               <p className="text-xs text-[var(--muted)] mt-3 opacity-70">
-                CAGR = rendement annuel composé depuis la date de début · Net = brut après impôts latents (PEA {(settings.taxRatePea * 100).toFixed(1)}% · CTO {(settings.taxRateCto * 100).toFixed(1)}%) — non encore réalisés.
+                {t("performance.cagr", { pea: (settings.taxRatePea * 100).toFixed(1), cto: (settings.taxRateCto * 100).toFixed(1) })}
                 {!investAllHaveDates && investPerfRows.length > 0 && (
-                  <> · Renseigne la date de début dans chaque page de compte pour activer le CAGR.</>
+                  <> · {t("performance.addDateHint")}</>
                 )}
               </p>
             </div>
@@ -1109,13 +1106,13 @@ export default async function AnalyticsPage() {
           {/* ── Radar d'allocation ── */}
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-6 space-y-6">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-              Radar d&apos;allocation
+              {t("radar.title")}
             </h2>
 
             {/* Garantis vs Risqués */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--foreground)]">Garantis vs Risqués</span>
+                <span className="text-sm text-[var(--foreground)]">{t("radar.safeVsRisky")}</span>
                 <span className="text-xs text-[var(--muted)] tabular-nums">
                   {garantisPct}% / {100 - garantisPct}%
                 </span>
@@ -1130,8 +1127,8 @@ export default async function AnalyticsPage() {
                 />
               </div>
               <div className="flex justify-between text-xs text-[var(--muted)] mt-1.5">
-                <span>Livrets · {formatCurrency(garantis, 0)}</span>
-                <span>Bourse · {formatCurrency(risques, 0)}</span>
+                <span>{t("radar.safe", { amount: formatCurrency(garantis, 0) })}</span>
+                <span>{t("radar.risky", { amount: formatCurrency(risques, 0) })}</span>
               </div>
             </div>
 
@@ -1139,15 +1136,15 @@ export default async function AnalyticsPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-[var(--foreground)]">Exposition Tech</span>
+                  <span className="text-sm text-[var(--foreground)]">{t("radar.techExposure")}</span>
                   {techPct > 60 && (
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--negative)]/15 text-[var(--negative)]">
-                      Concentration élevée
+                      {t("radar.highConcentration")}
                     </span>
                   )}
                   {techPct > 40 && techPct <= 60 && (
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)]">
-                      À surveiller
+                      {t("radar.monitor")}
                     </span>
                   )}
                 </div>
@@ -1173,7 +1170,7 @@ export default async function AnalyticsPage() {
                 />
               </div>
               <p className="text-xs text-[var(--muted)] mt-1.5 opacity-70">
-                Inclut l&apos;exposition indirecte via ETF Nasdaq, S&amp;P 500, MSCI World — poids théoriques approximatifs
+                {t("radar.techFootnote")}
               </p>
             </div>
           </div>
@@ -1182,7 +1179,7 @@ export default async function AnalyticsPage() {
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-[var(--border)]">
               <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                Répartition détaillée
+                {t("detailedAllocation.title")}
               </h2>
             </div>
             <div className="divide-y divide-[var(--border)]">
@@ -1222,17 +1219,17 @@ export default async function AnalyticsPage() {
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--border)]">
                 <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Performance mensuelle
+                  {t("monthlyPerf.title")}
                 </h2>
               </div>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Mois</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Patrimoine</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Variation</th>
-                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">%</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("monthlyPerf.colMonth")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("monthlyPerf.colNetWorth")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("monthlyPerf.colChange")}</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("monthlyPerf.colPct")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1278,19 +1275,19 @@ export default async function AnalyticsPage() {
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--border)]">
                 <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Mes actifs
+                  {t("assets.title")}
                 </h2>
               </div>
               <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Actif</th>
-                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Catégorie</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plus-value</th>
-                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Impôt latent</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">% Brut</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colAsset")}</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colCategory")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colValue")}</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colGain")}</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colTax")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("assets.colPct")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1309,13 +1306,13 @@ export default async function AnalyticsPage() {
                         <td className="px-4 sm:px-6 py-3">
                           <p className="font-medium text-[var(--foreground)]">{asset.name}</p>
                           <p className="text-xs text-[var(--muted)] sm:hidden">
-                            {TYPE_LABELS[asset.type] ?? asset.type}
+                            {ta(asset.type as any)}
                             {asset.subtype && ` · ${asset.subtype}`}
                           </p>
                           <p className="hidden sm:block text-xs text-[var(--muted)]">{asset.institution}</p>
                         </td>
                         <td className="hidden sm:table-cell px-6 py-3 text-[var(--muted)]">
-                          {TYPE_LABELS[asset.type] ?? asset.type}
+                          {ta(asset.type as any)}
                           {asset.subtype && <span className="ml-1 text-xs">· {asset.subtype}</span>}
                         </td>
                         <td className="px-4 sm:px-6 py-3 tabular-nums font-medium text-[var(--foreground)]">
@@ -1361,24 +1358,24 @@ export default async function AnalyticsPage() {
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
               <div className="px-6 py-4 border-b border-[var(--border)]">
                 <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Analyse du financement
+                  {t("financing.title")}
                 </h2>
               </div>
               <div className="px-4 sm:px-6 py-4 border-b border-[var(--border)] flex flex-wrap items-center gap-4 sm:gap-8 text-sm">
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Passif total</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("financing.totalLiabilities")}</p>
                   <p className="tabular-nums font-semibold text-[var(--negative)]">
                     {formatCurrency(totalLiabilities, 0)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Ratio dette / brut</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("financing.debtRatio")}</p>
                   <p className="tabular-nums font-semibold text-[var(--foreground)]">
                     {debtRatio}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] mb-1">Fonds propres</p>
+                  <p className="text-xs text-[var(--muted)] mb-1">{t("financing.equity")}</p>
                   <p className="tabular-nums font-semibold text-[var(--positive)]">
                     {formatCurrency(grossAssets - totalLiabilities, 0)}
                   </p>
@@ -1388,11 +1385,11 @@ export default async function AnalyticsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Bien</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Valeur</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Crédit</th>
-                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Fonds propres</th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">LTV</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("financing.colAsset")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("financing.colValue")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("financing.colLoan")}</th>
+                    <th scope="col" className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("financing.colEquity")}</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-[var(--muted)] uppercase tracking-wider">{t("financing.colLtv")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1455,11 +1452,13 @@ export default async function AnalyticsPage() {
       {!hasData && (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center">
           <p className="text-sm text-[var(--muted)]">
-            Aucune donnée — ajoutez des comptes dans{" "}
-            <Link href="/accounts" className="text-[var(--accent)] underline underline-offset-2">
-              Comptes
-            </Link>
-            .
+            {t.rich("noData", {
+              link: (chunks) => (
+                <Link href="/accounts" className="text-[var(--accent)] underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         </div>
       )}

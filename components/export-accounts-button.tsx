@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Download, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // ── Serialized types (no BigInt) ──────────────────────────────────────────────
 
@@ -61,15 +62,38 @@ export type AutomobileAccountExport = {
   depreciationPct: number | null;
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── ExportStrings ─────────────────────────────────────────────────────────────
 
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: "Courant",
-  SAVINGS: "Épargne",
-  MEAL_VOUCHER: "Titre-resto",
-  INVESTMENT: "Investissements",
-  CRYPTO: "Crypto",
+type ExportStrings = {
+  title: string;
+  cash: string;
+  investments: string;
+  realEstate: string;
+  autos: string;
+  balance: string;
+  delta: string;
+  total: string;
+  gain: string;
+  tax: string;
+  value: string;
+  liability: string;
+  equity: string;
+  purchasePrice: string;
+  currentValue: string;
+  netValue: string;
+  institution: string;
+  loanDue: string;
+  colAsset: string;
+  colIsin: string;
+  colQty: string;
+  colPrice: string;
+  colValue: string;
+  colPct: string;
+  colGain: string;
+  typeLabels: Record<string, string>;
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(cents: number, decimals = 0): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -102,50 +126,51 @@ function buildMarkdown(
   fiat: FiatAccountExport[],
   invest: InvestAccountExport[],
   realEstate: RealEstateAccountExport[],
-  automobiles: AutomobileAccountExport[]
+  automobiles: AutomobileAccountExport[],
+  s: ExportStrings
 ): string {
-  const date = new Date().toLocaleDateString("fr-FR", {
+  const date = new Date().toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const lines: string[] = [`# Export Comptes — ${date}`, ""];
+  const lines: string[] = [`# ${s.title} — ${date}`, ""];
 
   if (fiat.length > 0) {
-    lines.push("## Liquidités", "");
+    lines.push(`## ${s.cash}`, "");
     for (const a of fiat) {
       lines.push(
-        `### ${a.institutionName} · ${TYPE_LABELS[a.type] ?? a.type} — ${a.name}`
+        `### ${a.institutionName} · ${s.typeLabels[a.type] ?? a.type} — ${a.name}`
       );
-      lines.push(`- **Solde** : ${fmt(a.balanceCents)}`);
+      lines.push(`- **${s.balance}** : ${fmt(a.balanceCents)}`);
       if (a.deltaCents !== 0) {
-        lines.push(`- **Variation récente** : ${sign(a.deltaCents)}${fmt(a.deltaCents)}`);
+        lines.push(`- **${s.delta}** : ${sign(a.deltaCents)}${fmt(a.deltaCents)}`);
       }
       lines.push("");
     }
   }
 
   if (invest.length > 0) {
-    lines.push("## Investissements", "");
+    lines.push(`## ${s.investments}`, "");
     for (const a of invest) {
       const typeLabel =
         a.type === "CRYPTO"
-          ? "Crypto"
-          : `${TYPE_LABELS[a.type] ?? a.type}${a.investmentSubtype ? ` · ${a.investmentSubtype}` : ""}`;
+          ? s.typeLabels["CRYPTO"] ?? a.type
+          : `${s.typeLabels[a.type] ?? a.type}${a.investmentSubtype ? ` · ${a.investmentSubtype}` : ""}`;
       lines.push(`### ${a.institutionName} · ${typeLabel} — ${a.name}`);
 
-      const parts: string[] = [`**Total** : ${fmt(a.totalCents)}`];
+      const parts: string[] = [`**${s.total}** : ${fmt(a.totalCents)}`];
       if (a.gainCents !== null) {
-        parts.push(`**Plus-value** : ${sign(a.gainCents)}${fmt(a.gainCents)}`);
+        parts.push(`**${s.gain}** : ${sign(a.gainCents)}${fmt(a.gainCents)}`);
       }
       if (a.taxCents !== null && a.taxCents > 0) {
-        parts.push(`**Impôt latent** : -${fmt(a.taxCents)}`);
+        parts.push(`**${s.tax}** : -${fmt(a.taxCents)}`);
       }
       lines.push(parts.join("  ·  "), "");
 
       if (a.holdings.length > 0) {
         lines.push(
-          "| Actif | ISIN | Quantité | Prix unitaire | Valeur | % | Plus-value |"
+          `| ${s.colAsset} | ${s.colIsin} | ${s.colQty} | ${s.colPrice} | ${s.colValue} | ${s.colPct} | ${s.colGain} |`
         );
         lines.push("|---|---|---|---|---|---|---|");
         for (const h of a.holdings) {
@@ -163,14 +188,14 @@ function buildMarkdown(
   }
 
   if (realEstate.length > 0) {
-    lines.push("## Immobilier", "");
+    lines.push(`## ${s.realEstate}`, "");
     for (const p of realEstate) {
       lines.push(`### ${p.name}`);
-      lines.push(`- **Institution** : ${p.institutionName}`);
-      lines.push(`- **Valeur estimée** : ${fmt(p.valueCents)}`);
+      lines.push(`- **${s.institution}** : ${p.institutionName}`);
+      lines.push(`- **${s.value}** : ${fmt(p.valueCents)}`);
       if (p.liabilityCents > 0) {
-        lines.push(`- **Capital restant dû** : ${fmt(p.liabilityCents)}`);
-        lines.push(`- **Fonds propres** : ${fmt(p.equityCents)}`);
+        lines.push(`- **${s.liability}** : ${fmt(p.liabilityCents)}`);
+        lines.push(`- **${s.equity}** : ${fmt(p.equityCents)}`);
         lines.push(`- **LTV** : ${p.ltv}%`);
       }
       lines.push("");
@@ -178,22 +203,22 @@ function buildMarkdown(
   }
 
   if (automobiles.length > 0) {
-    lines.push("## Automobiles", "");
+    lines.push(`## ${s.autos}`, "");
     for (const a of automobiles) {
       lines.push(`### ${a.name}`);
-      lines.push(`- **Institution** : ${a.institutionName}`);
+      lines.push(`- **${s.institution}** : ${a.institutionName}`);
       if (a.purchasePriceCents > 0) {
-        lines.push(`- **Prix d'achat** : ${fmt(a.purchasePriceCents)}`);
+        lines.push(`- **${s.purchasePrice}** : ${fmt(a.purchasePriceCents)}`);
       }
       const depStr =
         a.depreciationCents !== null
           ? ` (${sign(a.depreciationCents)}${fmt(a.depreciationCents)}, ${a.depreciationPct}%)`
           : "";
-      lines.push(`- **Valeur actuelle** : ${fmt(a.valueCents)}${depStr}`);
+      lines.push(`- **${s.currentValue}** : ${fmt(a.valueCents)}${depStr}`);
       if (a.liabilityCents > 0) {
-        lines.push(`- **Crédit restant dû** : ${fmt(a.liabilityCents)}`);
+        lines.push(`- **${s.loanDue}** : ${fmt(a.liabilityCents)}`);
       }
-      lines.push(`- **Valeur nette** : ${fmt(a.equityCents)}`);
+      lines.push(`- **${s.netValue}** : ${fmt(a.equityCents)}`);
       lines.push("");
     }
   }
@@ -218,30 +243,33 @@ export function ExportAccountsButton({
   realEstateAccounts,
   automobileAccounts,
 }: Props) {
+  const t = useTranslations("exportAccounts");
+  const ta = useTranslations("accountTypes");
+
   const groups: AccountGroup[] = [
     {
-      label: "Liquidités",
+      label: t("groupCash"),
       accounts: fiatAccounts.map((a) => ({
         id: a.id,
         label: `${a.institutionName} — ${a.name}`,
       })),
     },
     {
-      label: "Investissements",
+      label: t("groupInvestments"),
       accounts: investAccounts.map((a) => ({
         id: a.id,
         label: `${a.institutionName} — ${a.name}`,
       })),
     },
     {
-      label: "Immobilier",
+      label: t("groupRealEstate"),
       accounts: realEstateAccounts.map((a) => ({
         id: a.id,
         label: `${a.institutionName} — ${a.name}`,
       })),
     },
     {
-      label: "Automobiles",
+      label: t("groupAutos"),
       accounts: automobileAccounts.map((a) => ({
         id: a.id,
         label: `${a.institutionName} — ${a.name}`,
@@ -321,11 +349,47 @@ export function ExportAccountsButton({
   }
 
   function handleExport() {
+    const exportStrings: ExportStrings = {
+      title: t("mdTitle"),
+      cash: t("groupCash"),
+      investments: t("groupInvestments"),
+      realEstate: t("groupRealEstate"),
+      autos: t("groupAutos"),
+      balance: t("mdBalance"),
+      delta: t("mdDelta"),
+      total: t("mdTotal"),
+      gain: t("mdGain"),
+      tax: t("mdTax"),
+      value: t("mdValue"),
+      liability: t("mdLiability"),
+      equity: t("mdEquity"),
+      purchasePrice: t("mdPurchasePrice"),
+      currentValue: t("mdCurrentValue"),
+      netValue: t("mdNetValue"),
+      institution: t("mdInstitution"),
+      loanDue: t("mdLoanDue"),
+      colAsset: t("mdColAsset"),
+      colIsin: t("mdColIsin"),
+      colQty: t("mdColQty"),
+      colPrice: t("mdColPrice"),
+      colValue: t("mdColValue"),
+      colPct: t("mdColPct"),
+      colGain: t("mdColGain"),
+      typeLabels: {
+        CHECKING: ta("CHECKING"),
+        SAVINGS: ta("SAVINGS"),
+        MEAL_VOUCHER: ta("MEAL_VOUCHER"),
+        INVESTMENT: ta("INVESTMENT"),
+        CRYPTO: ta("CRYPTO"),
+      },
+    };
+
     const md = buildMarkdown(
       fiatAccounts.filter((a) => selected.has(a.id)),
       investAccounts.filter((a) => selected.has(a.id)),
       realEstateAccounts.filter((a) => selected.has(a.id)),
-      automobileAccounts.filter((a) => selected.has(a.id))
+      automobileAccounts.filter((a) => selected.has(a.id)),
+      exportStrings
     );
     downloadFile(md, "comptes");
     setOpen(false);
@@ -338,7 +402,7 @@ export function ExportAccountsButton({
         className="flex cursor-pointer items-center gap-1.5 px-3 py-1.5 min-h-[44px] text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:text-[var(--foreground)] hover:border-[var(--accent)]/40 transition-colors"
       >
         <Download size={14} aria-hidden="true" />
-        Exporter
+        {t("button")}
       </button>
 
       {open && (
@@ -357,10 +421,10 @@ export function ExportAccountsButton({
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-              <h2 id={titleId} className="font-semibold text-[var(--foreground)]">Exporter les comptes</h2>
+              <h2 id={titleId} className="font-semibold text-[var(--foreground)]">{t("title")}</h2>
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Fermer"
+                aria-label={t("close")}
                 className="cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] p-1 rounded-lg hover:bg-[var(--surface-elevated)] transition-colors"
               >
                 <X size={16} aria-hidden="true" />
@@ -377,7 +441,7 @@ export function ExportAccountsButton({
                   className="w-4 h-4 rounded accent-[var(--accent)]"
                 />
                 <span className="text-sm font-medium text-[var(--foreground)]">
-                  Tout sélectionner
+                  {t("selectAll")}
                 </span>
               </label>
 
@@ -419,15 +483,16 @@ export function ExportAccountsButton({
             {/* Footer */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)]">
               <span className="text-xs text-[var(--muted)]">
-                {selectedCount} compte{selectedCount !== 1 ? "s" : ""} sélectionné
-                {selectedCount !== 1 ? "s" : ""}
+                {selectedCount === 1
+                  ? t("selectedOne", { count: selectedCount })
+                  : t("selectedMany", { count: selectedCount })}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setOpen(false)}
                   className="cursor-pointer min-h-[44px] px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 >
-                  Annuler
+                  {t("cancel")}
                 </button>
                 <button
                   onClick={handleExport}
@@ -435,7 +500,7 @@ export function ExportAccountsButton({
                   className="flex cursor-pointer items-center gap-1.5 min-h-[44px] px-4 py-2 text-sm font-medium bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent)]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Download size={14} aria-hidden="true" />
-                  Exporter (.md)
+                  {t("export")}
                 </button>
               </div>
             </div>
