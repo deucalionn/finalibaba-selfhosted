@@ -212,7 +212,8 @@ async def get_status():
         conn.close()
         return {row["source"]: {"status": row["status"], "message": row["message"], "at": row["createdAt"].isoformat()} for row in rows}
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        log.error("Failed to fetch sync status: %s", e)
+        return JSONResponse({"error": "Database error — check service logs"}, status_code=500)
 
 
 @app.post("/sync/lcl/setup/start")
@@ -225,7 +226,7 @@ async def lcl_setup_start():
         return result
     except Exception as e:
         log.error("LCL setup/start failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "LCL setup failed — check service logs"}, status_code=500)
 
 
 @app.post("/sync/lcl/setup/complete")
@@ -238,7 +239,7 @@ async def lcl_setup_complete():
         return result
     except Exception as e:
         log.error("LCL setup/complete failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "LCL setup failed — check service logs"}, status_code=500)
 
 
 @app.post("/sync/trade-republic/setup/start")
@@ -251,7 +252,7 @@ async def tr_setup_start():
         return result
     except Exception as e:
         log.error("TR setup/start failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "TR setup failed — check service logs"}, status_code=500)
 
 
 @app.post("/sync/trade-republic/setup/complete")
@@ -268,7 +269,7 @@ async def tr_setup_complete(request: Request):
         return {"status": "ok"}
     except Exception as e:
         log.error("TR setup/complete failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "TR setup failed — check service logs"}, status_code=500)
 
 
 @app.post("/sync/institution/{institution_id}")
@@ -289,7 +290,8 @@ async def trigger_institution_sync(institution_id: str):
         cur.close()
         conn.close()
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        log.error("Failed to fetch institution %s: %s", institution_id, e)
+        return JSONResponse({"error": "Database error — check service logs"}, status_code=500)
 
     if not inst:
         return JSONResponse({"error": "Institution not found"}, status_code=404)

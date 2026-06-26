@@ -4,8 +4,18 @@ import { prisma } from "@/lib/prisma";
 
 const SYNC_URL = process.env.SYNC_SERVICE_URL ?? "http://sync:8000";
 
+// Explicit allowlist — prevents any user-controlled value from reaching the URL
+const SYNC_PATHS = {
+  "lcl": "/sync/lcl",
+  "trade-republic": "/sync/trade-republic",
+} as const;
+
+// CUID format produced by Prisma @default(cuid())
+const CUID_RE = /^c[a-z0-9]{20,30}$/;
+
 export async function triggerSync(source: "lcl" | "trade-republic") {
-  const res = await fetch(`${SYNC_URL}/sync/${source}`, { method: "POST" });
+  const path = SYNC_PATHS[source];
+  const res = await fetch(`${SYNC_URL}${path}`, { method: "POST" });
   if (!res.ok) throw new Error(`Sync service error: ${res.status}`);
   return res.json();
 }
@@ -58,6 +68,7 @@ export async function getSyncStatus() {
 }
 
 export async function triggerInstitutionSync(institutionId: string) {
+  if (!CUID_RE.test(institutionId)) throw new Error("Invalid institution ID");
   const res = await fetch(`${SYNC_URL}/sync/institution/${institutionId}`, { method: "POST" });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
