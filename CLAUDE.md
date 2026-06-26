@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 ## Language policy
 
 - **All repo meta** (code comments, README, CLAUDE.md, commit messages, PR descriptions, issue templates) → **English**
-- **UI strings** → currently in French (v1 only). i18n is a post-v1 milestone — not implemented yet.
+- **UI strings** → French by default. English is available via the language switcher (stored in `NEXT_LOCALE` cookie). Add new UI strings to both `messages/fr.json` and `messages/en.json`.
 - The private upstream repo (`Finalibaba/`) stays in French — it's personal.
 
 ## Relationship with the upstream private repo
@@ -79,9 +79,27 @@ Prisma:
 npm run db:migrate -- --name <name>   # Create + apply migration
 npx prisma generate                    # Regenerate client after schema changes
 npm run db:seed                        # Seed common institutions
+npm run db:push                        # Sync schema to DB without a migration (dev only)
+npm run db:studio                      # Open Prisma Studio for DB inspection
+```
+
+npm scripts for Docker (note: `docker:dev` and `docker:prod` reference non-standard compose files — prefer the direct commands above):
+```bash
+npm run docker:dev        # docker compose up -d  (default docker-compose.yml)
+npm run docker:dev:stop   # docker compose down
 ```
 
 No test suite (no jest/vitest/playwright).
+
+### npm overrides
+
+`package.json` contains an `overrides` block that forces patched versions of transitive dependencies that can't be resolved by Dependabot alone (upstream packages pin older ranges). Do not remove these entries — they are security fixes:
+
+| Package | Reason |
+|---|---|
+| `uuid >=11.1.1` | CVE-2026-41907 — buffer bounds check; pinned to `^8.3.2` by `next-auth` |
+| `postcss >=8.5.10` | CVE-2026-41305 — XSS via `</style>`; vendored at `8.4.31` by `next` |
+| `@hono/node-server >=1.19.13` | CVE-2026-39406 — middleware bypass; pulled in via `@prisma/dev` |
 
 ## Architecture
 
@@ -91,15 +109,28 @@ No test suite (no jest/vitest/playwright).
 app/                  Next.js App Router pages and Server Actions
   generated/prisma/   Prisma client (generated — do not edit)
   globals.css         Design tokens + Tailwind base
-components/           React components (shared UI)
+  global-error.tsx    Global error boundary (client component, force-dynamic)
+components/
+  ui/                 Radix UI primitive wrappers (dialog, select, label, etc.)
+  (other)             Feature components — dialogs, charts, sync buttons, etc.
 lib/
   actions/            Server Actions (all DB mutations go here)
-  auth.ts             NextAuth config
+  auth.ts             NextAuth config + in-memory rate limiter
+  format.ts           Monetary helpers: cents↔Decimal, formatCurrency, formatPercent
+  gocardless.ts       GoCardless API client (token cache, typed fetch helpers)
+  institutions.ts     Bank/broker name → favicon domain mapping (used for logos)
   loan.ts             calcCurrentCapital() helper
+  prisma.ts           Singleton PrismaClient via @prisma/adapter-pg + pg Pool
+messages/
+  fr.json             French UI strings (default locale)
+  en.json             English UI strings
+i18n/
+  request.ts          next-intl locale detection (cookie → Accept-Language → DEFAULT_LOCALE)
 prisma/
   schema.prisma       Data model
   migrations/         Applied migrations
   seed.ts             Institution seed data
+prisma.config.ts      Prisma config (schema path, migrations path, DB URL from env)
 sync/                 Python FastAPI service (optional bank sync)
   main.py             APScheduler entry point + credential guards
   db.py               Shared PostgreSQL helpers
@@ -108,8 +139,8 @@ sync/                 Python FastAPI service (optional bank sync)
   sync_woob.py        Generic Woob runner for user-configured institutions
   setup_lcl.py        Interactive first-time LCL setup
   setup_tr.py         Interactive first-time Trade Republic setup
-public/               Static assets
-proxy.ts              Next.js middleware (root) — auth bypass logic
+public/               Static assets (includes manifest.json for PWA)
+proxy.ts              Next.js middleware (root) — auth bypass + demo POST-blocking
 ```
 
 Selfhosted-specific points below.
@@ -130,9 +161,13 @@ For users who want security without built-in auth: document Nginx Proxy Manager,
 
 ### i18n
 
-**Not implemented in v1 — UI is in French.** i18n is a planned post-v1 milestone, bundled with configurable tax rates. See ROADMAP.md.
+Implemented via `next-intl`. Locale detection order: `NEXT_LOCALE` cookie → `Accept-Language` header → `DEFAULT_LOCALE` env var (defaults to `"fr"`). Supported locales: `fr` (default) and `en`. No URL prefix per locale.
 
-When implemented: `next-intl`, `messages/en.json` (default), `messages/fr.json`. No URL prefix per locale.
+UI strings live in `messages/fr.json` and `messages/en.json`. When adding new strings, update both files. Institution logos are fetched from Google Favicons using domain mappings in `lib/institutions.ts`.
+
+### Demo mode
+
+Set `DEMO_MODE=true` to enable a read-only public demo. `proxy.ts` intercepts all non-GET requests and returns 403. The `<AutoSync />` component on the dashboard is also disabled. Use `docker-compose.demo.yml` for a pre-seeded demo environment.
 
 ### GoCardless (Open Banking PSD2)
 
@@ -173,6 +208,7 @@ Stored in `UserSettings` (`taxRatePea`, `taxRateCto`, `taxRateCrypto`). All four
 - `Holding` — unique on `(accountId, ticker)`. `costBasisCents` for P&L
 - `HistoricalBalance` — daily balance snapshots
 - `Transaction` — bank movements. `amountCents`: positive = credit, negative = debit. Deduplicated via `syncId`
+- `SyncLog` — per-run log entries: `source` ("lcl" | "trade_republic"), `status` ("success" | "error" | "auth_required"), optional `message`
 - `UserSettings` — singleton (`id = "singleton"`): salary, expenses, savings goal, monthly saved, `taxRatePea`/`taxRateCto`/`taxRateCrypto` (Float, defaults 0.172/0.314/0.314)
 
 ### Net worth calculation
@@ -182,6 +218,10 @@ Stored in `UserSettings` (`taxRatePea`, `taxRateCto`, `taxRateCrypto`). All four
 
 Latent tax rates: read from `UserSettings` (defaults: PEA 17.2%, CTO 31.4%, Crypto 31.4%). User-editable in Settings → Fiscalité.
 
+### Prisma client
+
+This project uses **Prisma 7** with the `@prisma/adapter-pg` driver adapter (not the legacy built-in engine). `lib/prisma.ts` creates the client via a `pg.Pool` → `PrismaPg` adapter. Always import `prisma` from `@/lib/prisma` — never instantiate `PrismaClient` directly. The client is a module-level singleton (cached on `globalThis` in dev to survive HMR).
+
 ### Server vs Client boundary
 
 - All Prisma queries and third-party API calls **must** live in Server Components or Server Actions.
@@ -189,7 +229,7 @@ Latent tax rates: read from `UserSettings` (defaults: PEA 17.2%, CTO 31.4%, Cryp
 
 ### Amounts & precision
 
-All monetary values stored as **integer cents** (`BigInt`). Arithmetic via `Decimal.js`. Format with `Intl.NumberFormat` (native — no i18n library yet).
+All monetary values stored as **integer cents** (`BigInt`). Arithmetic via `Decimal.js`. Use helpers from `lib/format.ts` for conversion and display (do not inline formatting logic). Institution logos are fetched at runtime via Google Favicons using domain mappings in `lib/institutions.ts` — add new institutions there, not inline.
 
 ## Design tokens
 

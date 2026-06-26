@@ -43,6 +43,11 @@
     "react-dom": "19.2.4",
     "recharts": "^3.8.1"
   },
+  "overrides": {
+    "uuid": ">=11.1.1",
+    "postcss": ">=8.5.10",
+    "@hono/node-server": ">=1.19.13"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -52,7 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
