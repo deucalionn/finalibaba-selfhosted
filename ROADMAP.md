@@ -19,9 +19,9 @@ Versions follow [Semantic Versioning](https://semver.org). Minor versions (1.x) 
 
 *The most-requested gap vs alternatives: getting data in without auto-sync, and keeping it safe.*
 
-- [ ] **CSV import** — bulk import of transactions and balance history for accounts not covered by auto-sync
-- [ ] **Historical net worth import** — import past balance snapshots (CSV/spreadsheet) to backfill the historical chart for users migrating from Excel or Finary
-- [ ] **Backup & restore** — one-command database export and full restore; critical for self-hosters before upgrades
+- [x] **CSV import** — bulk import of transactions for accounts not covered by auto-sync
+- [x] **Historical net worth import** — import past balance snapshots (CSV/spreadsheet) to backfill the historical chart for users migrating from Excel or Finary
+- [x] **Backup & restore** — one-command database export and full restore; critical for self-hosters before upgrades
 
 ---
 

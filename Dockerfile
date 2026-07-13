@@ -22,7 +22,9 @@ RUN npm run build
 
 # ── runner ─────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
-RUN apk add --no-cache libc6-compat
+# postgresql16-client: matches the postgres:16-alpine server exactly — used by
+# app/api/backup/route.ts (pg_dump/psql) for in-app backup & restore
+RUN apk add --no-cache libc6-compat postgresql16-client
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

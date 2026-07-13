@@ -19,6 +19,7 @@ import { SaveSettingsButton } from "@/components/save-settings-button";
 import { CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { BackupRestoreSection } from "@/components/backup-restore-section";
 
 // Institutions gérées par des scripts dédiés (pas Woob) — identifiées par nom
 const DEDICATED_SYNC_INSTITUTIONS = ["lcl", "trade republic"];
@@ -351,6 +352,9 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
+
+      {/* Backup & restore — hidden in demo mode (restore mutations are blocked anyway) */}
+      {process.env.DEMO_MODE !== "true" && <BackupRestoreSection />}
 
     </div>
   );

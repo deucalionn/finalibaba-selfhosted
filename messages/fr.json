@@ -147,6 +147,8 @@
     "backToAccounts": "Comptes",
     "positions": "Positions · {count} actif{suffix}",
     "transactions": "Transactions · {count} opération{suffix}",
+    "importEmptyTitle": "Aucune donnée pour ce compte",
+    "importEmptyDescription": "Importez un historique de solde ou des transactions depuis un fichier CSV pour commencer à suivre ce compte.",
     "history": "Historique · {count} entrée{suffix}",
     "tableHeaders": {
       "date": "Date",
@@ -356,6 +358,18 @@
     "sync": {
       "title": "Synchronisation automatique",
       "subtitle": "Sync toutes les 4h · TR keepalive toutes les 2h"
+    },
+    "backup": {
+      "title": "Sauvegarde & restauration",
+      "subtitle": "Exportez ou restaurez l'intégralité de vos données",
+      "download": "Télécharger une sauvegarde",
+      "restore": "Restaurer",
+      "restoreTitle": "Restaurer une sauvegarde",
+      "restoreWarning": "Cette action remplace définitivement toutes les données actuelles par celles du fichier importé. Cette opération est irréversible.",
+      "restoreFile": "Fichier de sauvegarde (.sql ou .sql.gz)",
+      "restoreConfirm": "Restaurer et écraser",
+      "restoring": "Restauration…",
+      "restoreError": "La restauration a échoué. Vérifiez les logs du serveur."
     }
   },
   "deleteAccount": {
@@ -403,6 +417,35 @@
     "balance": "Nouveau solde (€)",
     "submit": "Enregistrer",
     "update": "Mettre à jour"
+  },
+  "importTransactions": {
+    "trigger": "Importer un CSV",
+    "title": "Importer des transactions",
+    "hint": "Fichier CSV avec les colonnes date, label (ou libellé), amount (ou montant). Dates au format AAAA-MM-JJ ou JJ/MM/AAAA. Montant positif = crédit, négatif = débit.",
+    "missingColumns": "Colonnes attendues introuvables : date, label, amount.",
+    "invalidDate": "Date invalide",
+    "missingLabel": "Libellé manquant",
+    "invalidAmount": "Montant invalide",
+    "parseError": "Impossible de lire ce fichier CSV.",
+    "duplicate": "Doublon probable",
+    "selectedCount": "{count} sur {total} ligne(s) sélectionnée(s)",
+    "importing": "Import…",
+    "importSelected": "Importer {count} transaction(s)",
+    "success": "{count} transaction(s) importée(s)."
+  },
+  "importBalanceHistory": {
+    "trigger": "Importer un historique",
+    "title": "Importer un historique de solde",
+    "hint": "Fichier CSV avec les colonnes date et balance (ou solde/montant/valeur). Dates au format AAAA-MM-JJ ou JJ/MM/AAAA. Un point par date recommandé — utile pour reconstituer le graphique d'évolution depuis Excel ou un autre outil.",
+    "missingColumns": "Colonnes attendues introuvables : date, balance.",
+    "invalidDate": "Date invalide",
+    "invalidBalance": "Solde manquant",
+    "parseError": "Impossible de lire ce fichier CSV.",
+    "duplicate": "Une entrée existe déjà à cette date",
+    "selectedCount": "{count} sur {total} ligne(s) sélectionnée(s)",
+    "importing": "Import…",
+    "importSelected": "Importer {count} entrée(s)",
+    "success": "{count} entrée(s) importée(s)."
   },
   "addAccount": {
     "trigger": "Ajouter un compte",

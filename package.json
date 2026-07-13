@@ -39,6 +39,7 @@
     "next": "^16.2.9",
     "next-auth": "^4.24.13",
     "next-intl": "^4.13.0",
+    "papaparse": "^5.5.4",
     "pg": "^8.20.0",
     "prisma": "^7.6.0",
     "react": "19.2.4",
@@ -53,6 +54,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",

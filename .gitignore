@@ -43,6 +43,10 @@ next-env.d.ts
 
 /app/generated/prisma
 
+# database backups — contain personal financial data, never commit
+/backups/*
+!/backups/.gitkeep
+
 # Claude Code
 .claude/skills/**/__pycache__/
 .claude/skills/**/*.pyc

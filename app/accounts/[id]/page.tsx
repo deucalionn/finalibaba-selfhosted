@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/format";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
 import { InstitutionLogo } from "@/components/institution-logo";
 import { getInstitutionLogoUrl } from "@/lib/institutions";
 import { BalanceHistoryChart } from "@/components/balance-history-chart";
@@ -12,6 +12,9 @@ import { UpdateRealEstateDialog } from "@/components/update-real-estate-dialog";
 import { UpdateAutomobileDialog } from "@/components/update-automobile-dialog";
 import { AddHoldingDialog } from "@/components/add-holding-dialog";
 import { DeleteAccountButton } from "@/components/delete-account-button";
+import { ImportTransactionsDialog } from "@/components/import-transactions-dialog";
+import { ImportBalanceHistoryDialog } from "@/components/import-balance-history-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { updateInvestmentStartDate } from "@/lib/actions/accounts";
 import Decimal from "decimal.js";
 import { calcLoanStats, hasLoanParams } from "@/lib/loan";
@@ -70,6 +73,11 @@ export default async function AccountDetailPage({
   const isAutomobile = account.type === "AUTOMOBILE";
   const isLoan = account.type === "LOAN";
   const isSynced = !!account.syncId;
+  const canImportCsv = isFiat && !isSynced && !account.gocardlessAccountId;
+  const existingFingerprints = account.transactions.map(
+    (tx) => `${tx.date.toISOString().slice(0, 10)}|${tx.label.trim().toLowerCase()}|${tx.amountCents.toString()}`
+  );
+  const existingBalanceDates = account.history.map((h) => h.recordedAt.toISOString().slice(0, 10));
 
   const taxRate = getTaxRate(account.type, account.investmentSubtype ?? null, TAX_RATES);
 
@@ -329,9 +337,14 @@ export default async function AccountDetailPage({
       {/* Balance chart — fiat only */}
       {isFiat && (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
-          <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-4">
-            {td("balanceEvolution")}
-          </h2>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+              {td("balanceEvolution")}
+            </h2>
+            {canImportCsv && (
+              <ImportBalanceHistoryDialog accountId={account.id} existingDates={existingBalanceDates} />
+            )}
+          </div>
           <BalanceHistoryChart data={chartData} />
         </div>
       )}
@@ -805,10 +818,13 @@ export default async function AccountDetailPage({
       {/* Transactions — fiat synced accounts */}
       {isFiat && account.transactions.length > 0 && (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border)]">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               {td("transactions", { count: account.transactions.length, suffix: account.transactions.length !== 1 ? "s" : "" })}
             </h2>
+            {canImportCsv && (
+              <ImportTransactionsDialog accountId={account.id} existingFingerprints={existingFingerprints} />
+            )}
           </div>
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -865,10 +881,16 @@ export default async function AccountDetailPage({
       {/* Balance history table — fiat without transactions (manual accounts) */}
       {isFiat && account.transactions.length === 0 && historyRows.length > 0 && (
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border)]">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
               {td("history", { count: historyRows.length, suffix: historyRows.length !== 1 ? "s" : "" })}
             </h2>
+            {canImportCsv && (
+              <div className="flex items-center gap-2">
+                <ImportBalanceHistoryDialog accountId={account.id} existingDates={existingBalanceDates} />
+                <ImportTransactionsDialog accountId={account.id} existingFingerprints={existingFingerprints} />
+              </div>
+            )}
           </div>
           <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[320px]">
@@ -927,6 +949,23 @@ export default async function AccountDetailPage({
             </tbody>
           </table>
           </div>
+        </div>
+      )}
+
+      {/* Empty state — manual fiat account with nothing recorded yet */}
+      {canImportCsv && account.transactions.length === 0 && historyRows.length === 0 && (
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl">
+          <EmptyState
+            icon={Upload}
+            title={td("importEmptyTitle")}
+            description={td("importEmptyDescription")}
+            action={
+              <div className="flex items-center gap-2">
+                <ImportBalanceHistoryDialog accountId={account.id} existingDates={existingBalanceDates} />
+                <ImportTransactionsDialog accountId={account.id} existingFingerprints={existingFingerprints} />
+              </div>
+            }
+          />
         </div>
       )}
     </div>

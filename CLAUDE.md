@@ -188,6 +188,30 @@ The `sync/` service has two dedicated sync modules plus a generic Woob runner:
 
 Leave credentials blank to disable a module. `sync/main.py` skips gracefully. `sync/db.py` contains shared PostgreSQL helpers — do not duplicate inline.
 
+### Backup & restore
+
+Two paths, both wrap `pg_dump`/`psql` (full DB dump — schema + data, never a hand-rolled Prisma export, to avoid drift and BigInt/Decimal serialization issues):
+
+- **CLI**: `scripts/backup.sh` / `scripts/restore.sh` — call `docker compose exec db pg_dump|psql`. `restore.sh` pauses `app`/`sync` if present and requires typed confirmation.
+- **UI**: Settings → Backup & restore (`components/backup-restore-section.tsx`), backed by `app/api/backup/route.ts` (`GET` streams a gzip dump, `POST` restores from an uploaded file, auto-detecting gzip vs plain `.sql`). This runs `pg_dump`/`psql` from inside the `app` container itself — that's why the `runner` stage in `Dockerfile` installs `postgresql16-client` (must track the `postgres:16-alpine` server version; a client older than the server can't dump it). Hidden entirely in `DEMO_MODE` (matches the auto-sync section's pattern).
+
+Both directions use `pg_dump --clean --if-exists` (so restore drops/recreates objects first) and `psql --single-transaction` (restore is all-or-nothing, no partial state on error). Never echo raw `pg_dump`/`psql` stderr to the client — log it server-side and return a generic error message, per the exception-exposure fix in commit `1ae43c0`.
+
+### CSV import (transactions & balance history)
+
+For fiat accounts (`CHECKING`/`SAVINGS`/`MEAL_VOUCHER`) not covered by auto-sync — gated by `canImportCsv = isFiat && !isSynced && !account.gocardlessAccountId` in `app/accounts/[id]/page.tsx`. Two independent entry points, both rendered wherever that condition holds:
+
+- **Transactions** — `components/import-transactions-dialog.tsx` + `lib/actions/transactions.ts`'s `importTransactions(accountId, rows)`. Writes `Transaction` rows.
+- **Balance history** — `components/import-balance-history-dialog.tsx` + `lib/actions/balances.ts`'s `importBalanceHistory(accountId, rows)`. Writes `HistoricalBalance` rows at noon UTC (`${date}T12:00:00.000Z`, same convention as `prisma/seed-demo.ts` — avoids a midnight-UTC day shift in negative-offset timezones). Because the dashboard's net-worth-over-time chart (`app/page.tsx`) is built by aggregating `HistoricalBalance` across every account grouped by day, backfilling this way also backfills that chart — no separate "net worth snapshot" model exists or is needed.
+  - Deliberately **not** offered for `LOAN` (its balance is computed at runtime via `calcCurrentCapital()`, never stored — importing a raw balance would double as a false asset in the dashboard aggregation, which doesn't know to treat it as a liability) or for `INVESTMENT`/`CRYPTO`/`REAL_ESTATE`/`AUTOMOBILE` (their current-value source of truth is holdings+live price or `manualValueCents`, not the latest `HistoricalBalance` row — importing snapshots there would create a chart whose last point silently disagrees with the value shown in the account header). Fiat accounts are the one type where `HistoricalBalance` is already the authoritative source for both current value and chart history, so there's no such discontinuity risk.
+
+Shared design across both importers:
+
+- CSV parsing (via `papaparse`) and duplicate detection happen **entirely client-side** — no server round-trip until the user confirms. Header aliases (French: `libellé`/`montant`/`solde`/`valeur`) and both `YYYY-MM-DD`/`DD/MM/YYYY` date formats are accepted.
+- "Duplicate" is advisory, not a hard constraint — flagged rows are unchecked by default but the user can still import them. Transactions: flagged when `date|label|amountCents` matches an existing `Transaction` for that account. Balance history: flagged when a `HistoricalBalance` already exists for that exact date. There is no hash-based auto-merge for transactions specifically, because two legitimately different transactions can share a fingerprint (e.g. two identical recurring debits on the same day) — auto-merging on content hash would silently drop one.
+- Existing-row fingerprints/dates are computed server-side in the page and passed down as plain `string[]` props — never pass `BigInt` values to a Client Component, following the same "no BigInt across the RSC boundary" rule as `components/export-accounts-button.tsx`.
+- Every imported `Transaction` gets a fresh `syncId` (`csv_` + `randomUUID()`); neither importer attempts idempotent re-import matching like the Woob/GoCardless sync paths do with their own bank-provided IDs. Re-importing the same file twice creates duplicates — that's what the client-side duplicate flagging is for.
+
 ### Tax rates
 
 Stored in `UserSettings` (`taxRatePea`, `taxRateCto`, `taxRateCrypto`). All four pages that compute latent taxes (`app/page.tsx`, `app/accounts/page.tsx`, `app/accounts/[id]/page.tsx`, `app/analytics/page.tsx`) fetch settings and use the user-defined rates. Defaults: PEA 17.2%, CTO 31.4%, Crypto 31.4%.

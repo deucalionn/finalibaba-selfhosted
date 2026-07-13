@@ -97,6 +97,18 @@ Configure credentials per institution directly from **Settings → Institutions*
 
 ---
 
+## CSV import
+
+For checking/savings/meal-voucher accounts not covered by auto-sync (foreign banks, cash accounts, migrating from Excel or Finary…), open the account and use one of the two import buttons. Both preview rows before import — likely duplicates are flagged and unchecked by default, but you can still select them.
+
+**Import transactions** — columns `date`, `label` (or `libellé`/`description`), `amount` (or `montant`). Amount positive = credit, negative = debit. Flags a row as a likely duplicate when its date, label, and amount all match an existing transaction.
+
+**Import balance history** — columns `date`, `balance` (or `solde`/`montant`/`valeur`). One point per date; this backfills both the account's balance chart and the dashboard's net worth history. Flags a row as a likely duplicate when a balance is already recorded for that date.
+
+Both accept dates as `YYYY-MM-DD` or `DD/MM/YYYY`.
+
+---
+
 ## Securing access
 
 By default the app is open — intended for local networks, VPNs, or a reverse proxy that handles authentication.
@@ -146,6 +158,23 @@ git pull && docker compose up -d --build
 ```
 
 Migrations are applied automatically on startup.
+
+---
+
+## Backup & restore
+
+Two equivalent ways to back up your data — a full `pg_dump` of the database, so schema and data always stay consistent.
+
+**From the UI:** Settings → Backup & restore → *Download a backup* / *Restore*. Restoring is destructive and requires confirmation.
+
+**From the command line** (scriptable, good for cron):
+
+```bash
+./scripts/backup.sh                          # writes backups/finalibaba_<timestamp>.sql.gz
+./scripts/restore.sh backups/finalibaba_20260713_120000.sql.gz
+```
+
+`restore.sh` asks for confirmation before replacing all current data, and briefly stops the `app`/`sync` containers during the restore so nothing writes concurrently. Do this before every upgrade.
 
 ---
 
