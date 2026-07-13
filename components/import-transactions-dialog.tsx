@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { Upload } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { importTransactions } from "@/lib/actions/transactions";
 import { parseCents, formatCurrency } from "@/lib/format";
+import { parseCsvDate, looksNumeric, makeHeaderNormalizer } from "@/lib/csv-import";
 import { useTranslations } from "next-intl";
 
 type ParsedRow = {
@@ -18,19 +19,8 @@ type ParsedRow = {
   error?: string;
 };
 
-const DATE_RE_ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
-const DATE_RE_FR = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-
-function parseDate(raw: string): string | null {
-  const s = raw.trim();
-  if (DATE_RE_ISO.test(s)) return s;
-  const m = DATE_RE_FR.exec(s);
-  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-  return null;
-}
-
 // Canonical column names the import expects, plus common aliases (French bank exports, etc.)
-const HEADER_ALIASES: Record<string, "date" | "label" | "amount"> = {
+const normalizeHeader = makeHeaderNormalizer({
   date: "date",
   label: "label",
   libelle: "label",
@@ -39,12 +29,7 @@ const HEADER_ALIASES: Record<string, "date" | "label" | "amount"> = {
   amount: "amount",
   montant: "amount",
   value: "amount",
-};
-
-function normalizeHeader(h: string): string {
-  const key = h.trim().toLowerCase();
-  return HEADER_ALIASES[key] ?? key;
-}
+});
 
 export function ImportTransactionsDialog({
   accountId,
@@ -62,7 +47,7 @@ export function ImportTransactionsDialog({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<number | null>(null);
 
-  const existing = new Set(existingFingerprints);
+  const existing = useMemo(() => new Set(existingFingerprints), [existingFingerprints]);
 
   function reset() {
     setRows([]);
@@ -85,14 +70,14 @@ export function ImportTransactionsDialog({
           return;
         }
         const parsed: ParsedRow[] = results.data.map((raw) => {
-          const isoDate = parseDate(raw.date ?? "");
+          const isoDate = parseCsvDate(raw.date ?? "");
           const label = (raw.label ?? "").trim();
           const amountCents = Number(parseCents(raw.amount ?? ""));
           const error = !isoDate
             ? t("invalidDate")
             : !label
             ? t("missingLabel")
-            : amountCents === 0
+            : !looksNumeric(raw.amount ?? "") || amountCents === 0
             ? t("invalidAmount")
             : undefined;
           const fingerprint = `${isoDate ?? ""}|${label.toLowerCase()}|${amountCents}`;

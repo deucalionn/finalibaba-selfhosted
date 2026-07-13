@@ -365,11 +365,12 @@
       "download": "Download a backup",
       "restore": "Restore",
       "restoreTitle": "Restore a backup",
-      "restoreWarning": "This permanently replaces all current data with the contents of the imported file. This action cannot be undone.",
+      "restoreWarning": "This permanently replaces all current data with the contents of the imported file and restarts the app. This action cannot be undone.",
       "restoreFile": "Backup file (.sql or .sql.gz)",
       "restoreConfirm": "Restore and overwrite",
       "restoring": "Restoring…",
-      "restoreError": "Restore failed. Check the server logs for details."
+      "restoreError": "Restore failed. Check the server logs for details.",
+      "restarting": "Restore complete — restarting the app…"
     }
   },
   "deleteAccount": {
@@ -439,7 +440,8 @@
     "hint": "CSV file with columns date and balance. Dates as YYYY-MM-DD or DD/MM/YYYY. One point per date recommended — useful for backfilling the trend chart from Excel or another tool.",
     "missingColumns": "Expected columns not found: date, balance.",
     "invalidDate": "Invalid date",
-    "invalidBalance": "Missing balance",
+    "invalidBalance": "Missing or invalid balance",
+    "futureDate": "Date is in the future",
     "parseError": "Could not read this CSV file.",
     "duplicate": "An entry already exists for this date",
     "selectedCount": "{count} of {total} row(s) selected",

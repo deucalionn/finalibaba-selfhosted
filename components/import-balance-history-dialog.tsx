@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { History } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { importBalanceHistory } from "@/lib/actions/balances";
 import { parseCents, formatCurrency } from "@/lib/format";
+import { parseCsvDate, isFutureDate, looksNumeric, makeHeaderNormalizer } from "@/lib/csv-import";
 import { useTranslations } from "next-intl";
 
 type ParsedRow = {
@@ -16,30 +17,14 @@ type ParsedRow = {
   error?: string;
 };
 
-const DATE_RE_ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
-const DATE_RE_FR = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-
-function parseDate(raw: string): string | null {
-  const s = raw.trim();
-  if (DATE_RE_ISO.test(s)) return s;
-  const m = DATE_RE_FR.exec(s);
-  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-  return null;
-}
-
 // Canonical column names the import expects, plus common aliases.
-const HEADER_ALIASES: Record<string, "date" | "balance"> = {
+const normalizeHeader = makeHeaderNormalizer({
   date: "date",
   balance: "balance",
   solde: "balance",
   montant: "balance",
   valeur: "balance",
-};
-
-function normalizeHeader(h: string): string {
-  const key = h.trim().toLowerCase();
-  return HEADER_ALIASES[key] ?? key;
-}
+});
 
 export function ImportBalanceHistoryDialog({
   accountId,
@@ -57,7 +42,7 @@ export function ImportBalanceHistoryDialog({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<number | null>(null);
 
-  const existing = new Set(existingDates);
+  const existing = useMemo(() => new Set(existingDates), [existingDates]);
 
   function reset() {
     setRows([]);
@@ -80,9 +65,15 @@ export function ImportBalanceHistoryDialog({
           return;
         }
         const parsed: ParsedRow[] = results.data.map((raw) => {
-          const isoDate = parseDate(raw.date ?? "");
+          const isoDate = parseCsvDate(raw.date ?? "");
           const balanceCents = Number(parseCents(raw.balance ?? ""));
-          const error = !isoDate ? t("invalidDate") : raw.balance?.trim() === "" || raw.balance === undefined ? t("invalidBalance") : undefined;
+          const error = !isoDate
+            ? t("invalidDate")
+            : isFutureDate(isoDate)
+            ? t("futureDate")
+            : !looksNumeric(raw.balance ?? "")
+            ? t("invalidBalance")
+            : undefined;
           return {
             date: isoDate ?? "",
             balanceCents,

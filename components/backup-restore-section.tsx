@@ -12,6 +12,7 @@ export function BackupRestoreSection() {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -19,6 +20,24 @@ export function BackupRestoreSection() {
     setFile(null);
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function waitForRestart() {
+    // The server exits after a successful restore so the container restart
+    // policy hands the process a fresh DB connection pool — poll a cheap
+    // page (never /api/backup — that would trigger another full pg_dump)
+    // until it responds again, instead of reloading straight into a
+    // connection-refused error.
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        await fetch(window.location.pathname, { method: "HEAD", cache: "no-store" });
+        break;
+      } catch {
+        // still restarting
+      }
+    }
+    window.location.reload();
   }
 
   async function handleRestore() {
@@ -33,7 +52,8 @@ export function BackupRestoreSection() {
         const data = await res.json().catch(() => ({}));
         throw new Error((data as { error?: string }).error ?? t("restoreError"));
       }
-      window.location.reload();
+      setRestarting(true);
+      await waitForRestart();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("restoreError"));
       setPending(false);
@@ -64,6 +84,10 @@ export function BackupRestoreSection() {
           }
         >
           <div className="space-y-4">
+            {restarting ? (
+              <p className="text-sm text-[var(--foreground)]">{t("restarting")}</p>
+            ) : (
+              <>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-[var(--negative)]/10 border border-[var(--negative)]/20">
               <AlertTriangle size={16} className="text-[var(--negative)] shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-sm text-[var(--foreground)]">{t("restoreWarning")}</p>
@@ -94,6 +118,8 @@ export function BackupRestoreSection() {
                 {pending ? t("restoring") : t("restoreConfirm")}
               </Button>
             </div>
+              </>
+            )}
           </div>
         </Dialog>
       </div>

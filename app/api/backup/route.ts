@@ -2,29 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "node:child_process";
 import { createGzip, gunzipSync } from "node:zlib";
 
-// Split so pg_dump/psql never receive the password on argv (visible via `ps`);
-// it's passed through the PGPASSWORD env var instead.
-function parseDatabaseUrl(databaseUrl: string) {
+// Strip the password out of the connection string (so it never appears in
+// `ps` output for the spawned pg_dump/psql) but keep every other part —
+// including query params like ?sslmode=require — intact. libpq falls back to
+// PGPASSWORD when the URI has a username but no password.
+function buildConnectionString(databaseUrl: string): { connStr: string; password: string } {
   const u = new URL(databaseUrl);
-  return {
-    user: decodeURIComponent(u.username),
-    password: decodeURIComponent(u.password),
-    host: u.hostname,
-    port: u.port || "5432",
-    database: u.pathname.slice(1),
-  };
+  const password = decodeURIComponent(u.password);
+  u.password = "";
+  return { connStr: u.toString(), password };
 }
 
 const GZIP_MAGIC = Buffer.from([0x1f, 0x8b]);
 
 export async function GET() {
-  const { user, password, host, port, database } = parseDatabaseUrl(process.env.DATABASE_URL!);
+  const { connStr, password } = buildConnectionString(process.env.DATABASE_URL!);
 
-  const dump = spawn(
-    "pg_dump",
-    ["-h", host, "-p", port, "-U", user, "-d", database, "--clean", "--if-exists", "--no-owner"],
-    { env: { ...process.env, PGPASSWORD: password } }
-  );
+  const dump = spawn("pg_dump", ["--clean", "--if-exists", "--no-owner", connStr], {
+    env: { ...process.env, PGPASSWORD: password },
+  });
 
   let stderr = "";
   dump.stderr.on("data", (chunk) => (stderr += chunk));
@@ -32,22 +28,37 @@ export async function GET() {
   const gzip = createGzip();
   dump.stdout.pipe(gzip);
 
-  // dump.on("close") can fire and error() the controller while gzip "data"
-  // events already queued in the event loop are still pending — each one then
-  // throws calling enqueue() on an already-settled controller. That throw
-  // happens inside an event-emitter callback, so it becomes an uncaught
-  // exception that crashes the whole process. Guard every controller call.
+  // Two independent completion signals race here: gzip's "end" (all bytes
+  // flushed) and pg_dump's "close" (exit code known). If we settled the
+  // stream as soon as gzip finished, a pg_dump that wrote a valid-looking
+  // partial dump before dying mid-run would look like a *successful*
+  // download — the corruption would only surface later, during an actual
+  // restore. Wait for both, and only close() if the exit code was 0;
+  // otherwise error() so the download visibly fails.
+  let gzipEnded = false;
+  let dumpExitCode: number | null = null;
   let settled = false;
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
+      function finish() {
+        if (settled || !gzipEnded || dumpExitCode === null) return;
+        settled = true;
+        if (dumpExitCode === 0) {
+          controller.close();
+        } else {
+          console.error(`pg_dump exited with code ${dumpExitCode}: ${stderr}`);
+          controller.error(new Error(`pg_dump exited with code ${dumpExitCode}`));
+        }
+      }
+
       gzip.on("data", (chunk) => {
         if (settled) return;
         controller.enqueue(chunk);
       });
       gzip.on("end", () => {
-        if (settled) return;
-        settled = true;
-        controller.close();
+        gzipEnded = true;
+        finish();
       });
       dump.on("error", (err) => {
         if (settled) return;
@@ -56,14 +67,12 @@ export async function GET() {
         controller.error(err);
       });
       dump.on("close", (code) => {
-        if (code !== 0 && !settled) {
-          settled = true;
-          console.error(`pg_dump exited with code ${code}: ${stderr}`);
-          controller.error(new Error(`pg_dump exited with code ${code}`));
-        }
+        dumpExitCode = code ?? 1;
+        finish();
       });
     },
     cancel() {
+      settled = true;
       dump.kill();
     },
   });
@@ -102,13 +111,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { user, password, host, port, database } = parseDatabaseUrl(process.env.DATABASE_URL!);
+  const { connStr, password } = buildConnectionString(process.env.DATABASE_URL!);
 
   try {
     await new Promise<void>((resolve, reject) => {
       const psql = spawn(
         "psql",
-        ["-h", host, "-p", port, "-U", user, "-d", database, "-v", "ON_ERROR_STOP=1", "--single-transaction"],
+        [connStr, "-v", "ON_ERROR_STOP=1", "--single-transaction"],
         { env: { ...process.env, PGPASSWORD: password } }
       );
 
@@ -127,6 +136,17 @@ export async function POST(req: NextRequest) {
     // Full detail stays server-side only — never echo raw exception output to the client.
     console.error("Restore failed:", err);
     return NextResponse.json({ error: "Restore failed. Check server logs for details." }, { status: 500 });
+  }
+
+  // The restore just dropped and recreated the whole schema out from under
+  // this process's own Prisma connection pool — any pooled connection can now
+  // hold a query plan referencing pre-restore table/type OIDs. Exit and let
+  // the container's `restart: unless-stopped` policy bring the app back up
+  // with a fresh pool, the same safety net scripts/restore.sh gets by
+  // stopping the app container before restoring. Give the response time to
+  // flush to the client first.
+  if (process.env.NODE_ENV === "production") {
+    setTimeout(() => process.exit(0), 1000);
   }
 
   return NextResponse.json({ ok: true });

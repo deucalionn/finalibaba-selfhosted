@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseCents } from "@/lib/format";
+import { assertCsvImportEligible } from "@/lib/actions/csv-import-guard";
 
 export async function recordBalance(formData: FormData) {
   const accountId = formData.get("accountId") as string;
@@ -21,6 +22,7 @@ type BalanceRow = { date: string; balanceCents: number };
 
 export async function importBalanceHistory(accountId: string, rows: BalanceRow[]) {
   if (rows.length === 0) return { imported: 0 };
+  await assertCsvImportEligible(accountId);
 
   const data = rows.map((r) => ({
     accountId,

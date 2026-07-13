@@ -365,11 +365,12 @@
       "download": "Télécharger une sauvegarde",
       "restore": "Restaurer",
       "restoreTitle": "Restaurer une sauvegarde",
-      "restoreWarning": "Cette action remplace définitivement toutes les données actuelles par celles du fichier importé. Cette opération est irréversible.",
+      "restoreWarning": "Cette action remplace définitivement toutes les données actuelles par celles du fichier importé et redémarre l'application. Cette opération est irréversible.",
       "restoreFile": "Fichier de sauvegarde (.sql ou .sql.gz)",
       "restoreConfirm": "Restaurer et écraser",
       "restoring": "Restauration…",
-      "restoreError": "La restauration a échoué. Vérifiez les logs du serveur."
+      "restoreError": "La restauration a échoué. Vérifiez les logs du serveur.",
+      "restarting": "Restauration terminée — redémarrage de l'application en cours…"
     }
   },
   "deleteAccount": {
@@ -439,7 +440,8 @@
     "hint": "Fichier CSV avec les colonnes date et balance (ou solde/montant/valeur). Dates au format AAAA-MM-JJ ou JJ/MM/AAAA. Un point par date recommandé — utile pour reconstituer le graphique d'évolution depuis Excel ou un autre outil.",
     "missingColumns": "Colonnes attendues introuvables : date, balance.",
     "invalidDate": "Date invalide",
-    "invalidBalance": "Solde manquant",
+    "invalidBalance": "Solde manquant ou invalide",
+    "futureDate": "Date dans le futur",
     "parseError": "Impossible de lire ce fichier CSV.",
     "duplicate": "Une entrée existe déjà à cette date",
     "selectedCount": "{count} sur {total} ligne(s) sélectionnée(s)",
