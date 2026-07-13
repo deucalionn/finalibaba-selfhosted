@@ -3,7 +3,10 @@ FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# --ignore-scripts: prisma/schema.prisma isn't copied into this stage, so the
+# postinstall `prisma generate` would fail here. The builder stage below runs
+# its own explicit `prisma generate` once the full source is present.
+RUN npm ci --ignore-scripts
 
 # ── builder ────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
@@ -25,8 +28,10 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Production-only deps (excludes TypeScript, ESLint, Tailwind, @types/* — ~half the size)
+# --ignore-scripts: same reason as the deps stage — schema isn't copied in yet,
+# and the generated client is copied in from the builder stage below anyway.
 COPY --from=builder /app/package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 # App runtime
 COPY --from=builder /app/.next ./.next

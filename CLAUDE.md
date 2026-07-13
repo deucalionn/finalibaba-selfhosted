@@ -16,20 +16,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Relationship with the upstream private repo
 
-The private repo is at `/home/loic/Projets/Finalibaba/` on the same machine.
+The private repo is at `/mnt/c/Projets/Finalibaba` on the same machine (default path baked into `scripts/sync-from-upstream.sh`; override with `./scripts/sync-from-upstream.sh <path>`).
 
 **Porting rule:** app-layer changes (features, bug fixes, schema changes) made in `Finalibaba/` should be ported here via `scripts/sync-from-upstream.sh`. Infra-layer changes (deploy pipeline, VPS config, personal credentials) are **never** ported.
 
-Files excluded from selfhosted:
-
-| Upstream file | Reason |
-|---|---|
-| `.github/workflows/deploy.yml` | Personal VPS deploy (private server + private GHCR) |
-| `docker-compose.server.yml` | Pre-built GHCR images + personal Cloudflare tunnel |
-| `env.server.example` | Personal URLs |
-| `CLAUDE.md` | Replaced by this file |
-| `README.md` | Replaced by the public selfhosted README |
-| `AGENTS.md` | Same |
+The script's `rsync --exclude` list is the source of truth for what never gets synced — it covers infra files (`.github/`, all `docker-compose*.yml`, `env.server.example`, `.env*`), selfhosted-only docs (`CLAUDE.md`, `README.md`, `AGENTS.md`, `ROADMAP.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `LICENSE`), demo/mock seed files (`prisma/seed-demo.ts`, `prisma/seed-tr-mock.ts`), and `scripts/`, `.claude/` themselves. The files below additionally need protection because they *do* exist upstream but must keep selfhosted-specific content:
 
 Files that must **never** be overwritten by the sync script:
 
@@ -66,6 +57,8 @@ Docker (local dev — DB only, credentials fixed in `docker-compose.dev.yml`):
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 # DATABASE_URL=postgresql://appuser:devpassword@localhost:5432/finalibaba
+npx prisma migrate deploy   # first time only — applies schema to the fresh DB
+npm run db:seed:demo        # optional — fills it with realistic fictional data to develop against
 ```
 
 Production (one-shot setup):
@@ -77,16 +70,18 @@ docker compose up -d   # builds and starts everything
 Prisma:
 ```bash
 npm run db:migrate -- --name <name>   # Create + apply migration
-npx prisma generate                    # Regenerate client after schema changes
-npm run db:seed                        # Seed common institutions
+npx prisma generate                    # Regenerate client after schema changes (also runs automatically via postinstall on `npm install`)
+npm run db:seed                        # Seed common institutions (reference data, no accounts)
+npm run db:seed:demo                   # WIPES all data, then seeds realistic fictional accounts/balances/holdings/transactions — for local dev/debugging
 npm run db:push                        # Sync schema to DB without a migration (dev only)
 npm run db:studio                      # Open Prisma Studio for DB inspection
 ```
 
-npm scripts for Docker (note: `docker:dev` and `docker:prod` reference non-standard compose files — prefer the direct commands above):
+npm scripts for Docker — prefer the direct commands above, these are misleadingly named:
 ```bash
-npm run docker:dev        # docker compose up -d  (default docker-compose.yml)
+npm run docker:dev        # docker compose up -d       (despite the name, this runs the default/production docker-compose.yml)
 npm run docker:dev:stop   # docker compose down
+npm run docker:prod       # BROKEN — references docker-compose.prod.yml, which does not exist in this repo
 ```
 
 No test suite (no jest/vitest/playwright).
@@ -111,7 +106,7 @@ app/                  Next.js App Router pages and Server Actions
   globals.css         Design tokens + Tailwind base
   global-error.tsx    Global error boundary (client component, force-dynamic)
 components/
-  ui/                 Radix UI primitive wrappers (dialog, select, label, etc.)
+  ui/                 Radix UI primitive wrappers — currently button.tsx, dialog.tsx, input.tsx
   (other)             Feature components — dialogs, charts, sync buttons, etc.
 lib/
   actions/            Server Actions (all DB mutations go here)
@@ -221,6 +216,8 @@ Latent tax rates: read from `UserSettings` (defaults: PEA 17.2%, CTO 31.4%, Cryp
 ### Prisma client
 
 This project uses **Prisma 7** with the `@prisma/adapter-pg` driver adapter (not the legacy built-in engine). `lib/prisma.ts` creates the client via a `pg.Pool` → `PrismaPg` adapter. Always import `prisma` from `@/lib/prisma` — never instantiate `PrismaClient` directly. The client is a module-level singleton (cached on `globalThis` in dev to survive HMR).
+
+The client is generated to `app/generated/prisma` (gitignored, never committed). `npm install` runs it automatically via the `postinstall` script; re-run `npx prisma generate` manually after editing `schema.prisma` without reinstalling. In `Dockerfile`, the `deps` and `runner` stages run `npm ci` with `--ignore-scripts` because `prisma/schema.prisma` isn't copied into those stages yet — the `builder` stage generates the client explicitly once the full source is present.
 
 ### Server vs Client boundary
 
